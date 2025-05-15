@@ -1,0 +1,22 @@
+[project]
+name = "gluex-ksks"
+version = "0.1.0"
+description = "Analysis code for the KsKs analysis at GlueX"
+readme = "README.md"
+authors = [
+    { name = "Dene Hoffman", email = "dene@cmu.edu" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.2.0",
+    "laddu>=0.6.1",
+    "polars>=1.29.0",
+    "uproot>=5.6.1",
+]
+
+[project.scripts]
+run-dselectors = "gluex_ksks.dselector:cli"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
