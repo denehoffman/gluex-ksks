@@ -11,12 +11,6 @@ void DSelector_phase_1::Init(TTree *locTree) {
         return;
     }}
     Get_ComboWrappers();
-    dPreviousRunNumber = 0;
-    dAnalysisActions.push_back(new DHistogramAction_ParticleID(dComboWrapper, false));
-    dAnalysisActions.push_back(new DHistogramAction_PIDFOM(dComboWrapper));
-    dAnalysisActions.push_back(new DHistogramAction_KinFitResults(dComboWrapper));
-    dAnalysisActions.push_back(new DHistogramAction_BeamEnergy(dComboWrapper, false));
-    dAnalysisActions.push_back(new DHistogramAction_ParticleComboKinematics(dComboWrapper, false));
 
     Initialize_Actions();
 
@@ -165,13 +159,7 @@ Bool_t DSelector_phase_1::Process(Long64_t locEntry) {
 
     DSelector::Process(locEntry);
 
-    // If the run number changes, use RCDB to get polarization info:
     UInt_t locRunNumber = Get_RunNumber();
-    if(locRunNumber != dPreviousRunNumber) {
-        dIsPolarizedFlag = dAnalysisUtilities.Get_IsPolarizedBeam(locRunNumber, dIsPARAFlag);
-        dPreviousRunNumber = locRunNumber;
-    }
-
 
     Reset_Actions_NewEvent();
 
@@ -434,11 +422,6 @@ Bool_t DSelector_phase_1::Process(Long64_t locEntry) {
 
         // CUT: select coherent peak
         if(locBeamP4.E() < 8.2 || locBeamP4.E() > 8.8) {
-            dComboWrapper->Set_IsComboCut(true);
-        }
-
-        // CUT: remove unpolarized events (AMO)
-        if(!dIsPolarizedFlag) {
             dComboWrapper->Set_IsComboCut(true);
         }
 

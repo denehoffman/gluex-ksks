@@ -1,6 +1,6 @@
-#include "DSelector_phase_2.h"
+#include "DSelector_phase_1.h"
 
-void DSelector_phase_2::Init(TTree *locTree) {
+void DSelector_phase_1::Init(TTree *locTree) {
 
     dFlatTreeFileName = "flat.root";
     dFlatTreeName = "kin";
@@ -11,12 +11,6 @@ void DSelector_phase_2::Init(TTree *locTree) {
         return;
     }}
     Get_ComboWrappers();
-    dPreviousRunNumber = 0;
-    dAnalysisActions.push_back(new DHistogramAction_ParticleID(dComboWrapper, false));
-    dAnalysisActions.push_back(new DHistogramAction_PIDFOM(dComboWrapper));
-    dAnalysisActions.push_back(new DHistogramAction_KinFitResults(dComboWrapper));
-    dAnalysisActions.push_back(new DHistogramAction_BeamEnergy(dComboWrapper, false));
-    dAnalysisActions.push_back(new DHistogramAction_ParticleComboKinematics(dComboWrapper, false));
 
     Initialize_Actions();
 
@@ -159,19 +153,13 @@ void DSelector_phase_2::Init(TTree *locTree) {
 
     dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("KShort1_Z");
     dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("KShort2_Z");
+
+    dFlatTreeInterface->Create_Branch_NoSplitTObject<TObjString>("Topology");
 }
 
-Bool_t DSelector_phase_2::Process(Long64_t locEntry) {
+Bool_t DSelector_phase_1::Process(Long64_t locEntry) {
 
     DSelector::Process(locEntry);
-
-    // If the run number changes, use RCDB to get polarization info:
-    UInt_t locRunNumber = Get_RunNumber();
-    if(locRunNumber != dPreviousRunNumber) {
-        dIsPolarizedFlag = dAnalysisUtilities.Get_IsPolarizedBeam(locRunNumber, dIsPARAFlag);
-        dPreviousRunNumber = locRunNumber;
-    }
-
 
     Reset_Actions_NewEvent();
 
@@ -433,12 +421,7 @@ Bool_t DSelector_phase_2::Process(Long64_t locEntry) {
         }
 
         // CUT: select coherent peak
-        if(locBeamP4.E() < 8.0 || locBeamP4.E() > 8.6) {
-            dComboWrapper->Set_IsComboCut(true);
-        }
-
-        // CUT: remove unpolarized events (AMO)
-        if(!dIsPolarizedFlag) {
+        if(locBeamP4.E() < 8.2 || locBeamP4.E() > 8.8) {
             dComboWrapper->Set_IsComboCut(true);
         }
 
@@ -609,6 +592,10 @@ Bool_t DSelector_phase_2::Process(Long64_t locEntry) {
         // Fill Flat KShort detector branches
         dFlatTreeInterface->Fill_Fundamental<Float_t>("KShort1_Z", locDecayingKShort1X4.Z());
         dFlatTreeInterface->Fill_Fundamental<Float_t>("KShort2_Z", locDecayingKShort2X4.Z());
+
+        // Fill Flat Topology branch
+        TObjString** objStringPtrTopology = dFlatTreeInterface->Get_PointerToPointerTo_TObject<TObjString>("Topology");
+        **objStringPtrTopology = TObjString(Get_ThrownTopologyString().Data());
 
         Fill_FlatTree();
     } // End of Combo Loop

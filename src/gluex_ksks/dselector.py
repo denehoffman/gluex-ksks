@@ -4,24 +4,6 @@ from pathlib import Path
 from typing import Literal
 
 import click
-import polars as pl
-import uproot
-from uproot.behaviors.TBranch import HasBranches
-
-
-def root_to_parquet(path: Path, tree: str = "kin"):
-    tt = uproot.open(
-        f"{path}:{tree}",
-    )
-    assert isinstance(tt, HasBranches)  # noqa: S101
-    root_data = tt.arrays(library="np")
-    for key in root_data:
-        if key.startswith("P4_"):
-            root_data[key.replace("P4_", "p4_")] = root_data.pop(key)
-        if key.startswith("Weight"):
-            root_data[key.replace("Weight", "weight")] = root_data.pop(key)
-    dataframe = pl.from_dict(root_data)
-    dataframe.write_parquet(path.with_suffix(".parquet"))
 
 
 def generate_slurm_job(
@@ -32,6 +14,7 @@ def generate_slurm_job(
     job_name: str,
     queue_name: str,
     env_path: Path,
+    version_path: Path,
     scratch_dir: Path,
     dselector_c_path: Path,
     dselector_h_path: Path,
@@ -49,7 +32,7 @@ def generate_slurm_job(
 echo "Starting Job"
 pwd
 
-source {env_path}
+source {env_path} {version_path}
 echo "Sourced env file {env_path}"
 
 for inputpath in {input_dir}/*.root
@@ -76,7 +59,7 @@ unset $1
 inputname=$2
 unset $2
 echo $1
-source {env_path}
+source {env_path} {version_path}
 cd "$WORKINGDIR"
 pwd
 echo "Contents of working directory:"
@@ -138,6 +121,7 @@ def generate_parallel_hadd_job(
     job_name: str,
     queue_name: str,
     env_path: Path,
+    version_path: Path,
     max_n_tasks: int,
 ):
     return f"""#!/bin/sh
@@ -150,7 +134,7 @@ def generate_parallel_hadd_job(
 #SBATCH --error={raw_output_dir}/logs/merge_log_%A.err
 #SBATCH --time=1:00:00
 
-source {env_path}
+source {env_path} {version_path}
 
 echo "Merging flat trees..."
 echo "hadd -O -f -j {max_n_tasks} {output_dir}/{output_name}.root {raw_output_dir}/{output_name}/*.root"
@@ -161,95 +145,94 @@ echo "DONE"
 
 
 def mkdirs(output_name: str, output_dir: Path, raw_output_dir: Path):
-    (output_dir / "logs").mkdir(parents=True, exist_ok=True)
-    (output_dir / output_name).mkdir(parents=True, exist_ok=True)
-    (raw_output_dir / "logs").mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (raw_output_dir / 'logs').mkdir(parents=True, exist_ok=True)
     (raw_output_dir / output_name).mkdir(parents=True, exist_ok=True)
 
 
 def run_slurm_script(content: str):
-    with tempfile.NamedTemporaryFile("w+", suffix=".sh", delete=True) as temp:
+    with tempfile.NamedTemporaryFile('w+', suffix='.sh', delete=True) as temp:
         temp.write(content)
         temp.flush()
-        subprocess.run(["sbatch", temp.name], check=False)  # noqa: S603, S607
+        subprocess.run(['sbatch', temp.name], check=False)  # noqa: S603, S607
 
 
-queues = {"blue": 64, "green": 32}
+queues = {'blue': 64, 'green': 32}
 data_analysis_sets = [
     {
-        "output_name": output_name,
-        "output_dir": Path.cwd() / "analysis" / "datasets" / "data",
-        "raw_output_dir": Path.cwd() / "analysis" / "raw_datasets" / "data",
-        "input_dir": input_dir,
-        "job_name": f"data_{output_name}",
-        "dselector_c_path": Path.cwd()
-        / "analysis"
-        / "dselectors"
-        / ("DSelector_phase_1.C" if output_name != "s20" else "DSelector_phase_2.C"),
-        "tree_name": "ksks__B4_Tree",
+        'output_name': output_name,
+        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'data',
+        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'data',
+        'input_dir': input_dir,
+        'job_name': f'data_{output_name}',
+        'dselector_c_path': Path.cwd()
+        / 'analysis'
+        / 'dselectors'
+        / ('DSelector_phase_1.C' if output_name != 's20' else 'DSelector_phase_2.C'),
+        'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ("s17", Path("/raid3/nhoffman/RunPeriod-2017-01/analysis/ver52/tree_ksks__B4/merged")),
-        ("s18", Path("/raid3/nhoffman/RunPeriod-2018-01/analysis/ver19/tree_ksks__B4/merged")),
-        ("f18", Path("/raid3/nhoffman/RunPeriod-2018-08/analysis/ver19/tree_ksks__B4/merged")),
-        ("s20", Path("/raid3/nhoffman/RunPeriod-2019-11/analysis/ver04/tree_ksks__B4/merged")),
+        ('s17', Path('/raid3/nhoffman/RunPeriod-2017-01/analysis/ver52/tree_ksks__B4/merged')),
+        ('s18', Path('/raid3/nhoffman/RunPeriod-2018-01/analysis/ver19/tree_ksks__B4/merged')),
+        ('f18', Path('/raid3/nhoffman/RunPeriod-2018-08/analysis/ver19/tree_ksks__B4/merged')),
+        ('s20', Path('/raid3/nhoffman/RunPeriod-2019-11/analysis/ver04/tree_ksks__B4/merged')),
     ]
 ]
 sigmc_analysis_sets = [
     {
-        "output_name": output_name,
-        "output_dir": Path.cwd() / "analysis" / "datasets" / "sigmc",
-        "raw_output_dir": Path.cwd() / "analysis" / "raw_datasets" / "sigmc",
-        "input_dir": input_dir,
-        "job_name": f"sigmc_{output_name}",
-        "dselector_c_path": Path.cwd()
-        / "analysis"
-        / "dselectors"
-        / ("DSelector_phase_1.C" if output_name != "s20" else "DSelector_phase_2.C"),
-        "tree_name": "ksks__B4_Tree",
+        'output_name': output_name,
+        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'sigmc',
+        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'sigmc',
+        'input_dir': input_dir,
+        'job_name': f'sigmc_{output_name}',
+        'dselector_c_path': Path.cwd()
+        / 'analysis'
+        / 'dselectors'
+        / ('DSelector_phase_1.C' if output_name != 's20' else 'DSelector_phase_2.C'),
+        'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ("s17", Path("/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/ksks/tree_ksks__B4_gen_amp_large")),
-        ("s18", Path("/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large")),
-        ("f18", Path("/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large")),
-        ("s20", Path("/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/ksks/tree_ksks__B4_gen_amp_large")),
+        ('s17', Path('/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/ksks/tree_ksks__B4_gen_amp_large')),
+        ('s18', Path('/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large')),
+        ('f18', Path('/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large')),
+        ('s20', Path('/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/ksks/tree_ksks__B4_gen_amp_large')),
     ]
 ]
 bkgmc_analysis_sets = [
     {
-        "output_name": output_name,
-        "output_dir": Path.cwd() / "analysis" / "datasets" / "bkgmc",
-        "raw_output_dir": Path.cwd() / "analysis" / "raw_datasets" / "bkgmc",
-        "input_dir": input_dir,
-        "job_name": f"bkgmc_{output_name}",
-        "dselector_c_path": Path.cwd()
-        / "analysis"
-        / "dselectors"
-        / ("DSelector_phase_1.C" if output_name != "s20" else "DSelector_phase_2.C"),
-        "tree_name": "ksks__B4_Tree",
+        'output_name': output_name,
+        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'bkgmc',
+        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'bkgmc',
+        'input_dir': input_dir,
+        'job_name': f'bkgmc_{output_name}',
+        'dselector_c_path': Path.cwd()
+        / 'analysis'
+        / 'dselectors'
+        / ('DSelector_phase_1.C' if output_name != 's20' else 'DSelector_phase_2.C'),
+        'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ("s17", Path("/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/4pi/tree_ksks__B4_gen_amp/")),
-        ("s18", Path("/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/")),
-        ("f18", Path("/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/")),
-        ("s20", Path("/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/4pi/tree_ksks__B4_gen_amp/")),
+        ('s17', Path('/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/4pi/tree_ksks__B4_gen_amp/')),
+        ('s18', Path('/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/')),
+        ('f18', Path('/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/')),
+        ('s20', Path('/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/4pi/tree_ksks__B4_gen_amp/')),
     ]
 ]
 bggen_analysis_sets = [
     {
-        "output_name": output_name,
-        "output_dir": Path.cwd() / "analysis" / "datasets" / "bggen",
-        "raw_output_dir": Path.cwd() / "analysis" / "raw_datasets" / "bggen",
-        "input_dir": input_dir,
-        "job_name": f"bggen_{output_name}",
-        "dselector_c_path": Path.cwd()
-        / "analysis"
-        / "dselectors"
-        / ("DSelector_phase_1.C" if output_name != "s20" else "DSelector_phase_2.C"),
-        "tree_name": "ksks__B4_Tree",
+        'output_name': output_name,
+        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'bggen',
+        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'bggen',
+        'input_dir': input_dir,
+        'job_name': f'bggen_{output_name}',
+        'dselector_c_path': Path.cwd()
+        / 'analysis'
+        / 'dselectors'
+        / ('DSelector_phase_1.C' if output_name != 's20' else 'DSelector_phase_2.C'),
+        'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ("s18", Path("/raid2/nhoffman/RunPeriod-2018-01/analysis/bggen/ver11/batch01/tree_ksks__B4/merged")),
+        ('s18', Path('/raid2/nhoffman/RunPeriod-2018-01/analysis/bggen/ver11/batch01/tree_ksks__B4/merged')),
     ]
 ]
 
@@ -263,11 +246,12 @@ def run_analysis(
     job_name: str,
     queue_name: str,
     env_path: Path,
+    version_path: Path,
     dselector_c_path: Path,
     tree_name: str,
     max_n_tasks: int,
 ):
-    scratch_dir = Path.cwd() / "tmp"
+    scratch_dir = Path.cwd() / 'tmp'
     scratch_dir.mkdir(parents=True, exist_ok=True)
     mkdirs(output_name, output_dir, raw_output_dir)
     run_slurm_script(
@@ -278,9 +262,10 @@ def run_analysis(
             job_name=job_name,
             queue_name=queue_name,
             env_path=env_path,
+            version_path=version_path,
             scratch_dir=scratch_dir,
             dselector_c_path=dselector_c_path,
-            dselector_h_path=dselector_c_path.with_suffix(".h"),
+            dselector_h_path=dselector_c_path.with_suffix('.h'),
             tree_name=tree_name,
         )
     )
@@ -292,19 +277,18 @@ def run_analysis(
             job_name=job_name,
             queue_name=queue_name,
             env_path=env_path,
+            version_path=version_path,
             max_n_tasks=max_n_tasks,
         )
     )
-    output_file_path = output_dir / f"{output_name}.root"
-    root_to_parquet(output_file_path)
 
 
-def run_on_slurm(data_type: Literal["data", "sigmc", "bkgmc", "bggen"], queue_name: Literal["blue", "green"]):
-    if data_type == "data":
+def run_on_slurm(data_type: Literal['data', 'sigmc', 'bkgmc', 'bggen'], queue_name: Literal['blue', 'green']):
+    if data_type == 'data':
         analysis_sets = data_analysis_sets
-    elif data_type == "sigmc":
+    elif data_type == 'sigmc':
         analysis_sets = sigmc_analysis_sets
-    elif data_type == "bkgmc":
+    elif data_type == 'bkgmc':
         analysis_sets = bkgmc_analysis_sets
     else:
         analysis_sets = bggen_analysis_sets
@@ -314,20 +298,21 @@ def run_on_slurm(data_type: Literal["data", "sigmc", "bkgmc", "bggen"], queue_na
             **analysis_set,
             queue_name=queue_name,
             max_n_tasks=queues[queue_name],
-            env_path=Path.cwd() / "analysis" / "env.sh",
+            env_path=Path.cwd() / 'analysis' / 'env.sh',
+            version_path=Path.cwd() / 'analysis' / 'version.xml',
         )
 
 
 @click.command()
 @click.option(
-    "--queue",
-    type=click.Choice(["blue", "green"], case_sensitive=False),
-    defualt="blue",
+    '--queue',
+    type=click.Choice(['blue', 'green'], case_sensitive=False),
+    default='blue',
     show_default=True,
-    help="slurm queue to use",
+    help='slurm queue to use',
 )
 def cli(queue):
-    run_on_slurm("data", queue)
-    run_on_slurm("sigmc", queue)
-    run_on_slurm("bkgmc", queue)
-    run_on_slurm("bggen", queue)
+    run_on_slurm('data', queue)
+    run_on_slurm('sigmc', queue)
+    run_on_slurm('bkgmc', queue)
+    run_on_slurm('bggen', queue)

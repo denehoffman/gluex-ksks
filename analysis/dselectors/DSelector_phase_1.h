@@ -1,5 +1,5 @@
-#ifndef DSelector_phase_2_h
-#define DSelector_phase_2_h
+#ifndef DSelector_phase_1_h
+#define DSelector_phase_1_h
 
 #include <iostream>
 
@@ -10,12 +10,12 @@
 #include "TH1D.h"
 #include "TH2D.h"
 
-class DSelector_phase_2 : public DSelector {
+class DSelector_phase_1 : public DSelector {
 
     public:
 
-        DSelector_phase_2(TTree* locTree = NULL) : DSelector(locTree){}
-        virtual ~DSelector_phase_2(){}
+        DSelector_phase_1(TTree* locTree = NULL) : DSelector(locTree){}
+        virtual ~DSelector_phase_1(){}
 
         void Init(TTree *tree);
         Bool_t Process(Long64_t entry);
@@ -24,11 +24,6 @@ class DSelector_phase_2 : public DSelector {
 
         void Get_ComboWrappers(void);
         void Finalize(void);
-
-        // BEAM POLARIZATION INFORMATION
-        UInt_t dPreviousRunNumber;
-        bool dIsPolarizedFlag;
-        bool dIsPARAFlag;
 
         // CREATE REACTION-SPECIFIC PARTICLE ARRAYS
 
@@ -49,10 +44,10 @@ class DSelector_phase_2 : public DSelector {
         DChargedTrackHypothesis* dPiMinus2Wrapper;
         DChargedTrackHypothesis* dPiPlus2Wrapper;
 
-    ClassDef(DSelector_phase_2, 0);
+    ClassDef(DSelector_phase_1, 0);
 };
 
-void DSelector_phase_2::Get_ComboWrappers(void) {
+void DSelector_phase_1::Get_ComboWrappers(void) {
     // Step 0
     dStep0Wrapper = dComboWrapper->Get_ParticleComboStep(0);
     dComboBeamWrapper = static_cast<DBeamParticle*>(dStep0Wrapper->Get_InitialParticle());
@@ -72,4 +67,4 @@ void DSelector_phase_2::Get_ComboWrappers(void) {
 
 }
 
-#endif // DSelector_phase_2_h
+#endif // DSelector_phase_1_h

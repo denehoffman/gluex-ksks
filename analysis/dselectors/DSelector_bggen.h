@@ -25,11 +25,6 @@ class DSelector_phase_1 : public DSelector {
         void Get_ComboWrappers(void);
         void Finalize(void);
 
-        // BEAM POLARIZATION INFORMATION
-        UInt_t dPreviousRunNumber;
-        bool dIsPolarizedFlag;
-        bool dIsPARAFlag;
-
         // CREATE REACTION-SPECIFIC PARTICLE ARRAYS
 
         // Step 0
