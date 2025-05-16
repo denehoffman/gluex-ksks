@@ -13,3 +13,4 @@ analysis/raw_datasets
 analysis/plots
 analysis/reports
 tmp/
+.modak/

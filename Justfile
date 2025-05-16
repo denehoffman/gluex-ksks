@@ -1,7 +1,6 @@
 default:
   just --list
 
-
 venv:
   [ -d .venv ] || uv venv --python=3.13
   source .venv/bin/activate

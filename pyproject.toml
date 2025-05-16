@@ -7,6 +7,7 @@ authors = [{ name = "Dene Hoffman", email = "dene@cmu.edu" }]
 requires-python = ">=3.13"
 dependencies = [
   "click>=8.2.0",
+  "iminuit>=2.31.1",
   "laddu>=0.6.1",
   "polars>=1.29.0",
   "uproot>=5.6.1",
@@ -14,6 +15,7 @@ dependencies = [
 
 [project.scripts]
 run-dselectors = "gluex_ksks.dselector:cli"
+get-databases = "gluex_ksks.tasks.databases:cli"
 
 [build-system]
 requires = ["setuptools>=61"]
