@@ -9,7 +9,14 @@ from uproot.behaviors.TBranch import HasBranches
 from uproot.reading import ReadOnlyDirectory
 
 from gluex_ksks.constants import MISC_PATH
-from gluex_ksks.utils import CCDBData, Histogram, RCDBData, ScalingFactors, get_pol_angle, get_run_period
+from gluex_ksks.utils import (
+    CCDBData,
+    Histogram,
+    RCDBData,
+    ScalingFactors,
+    get_pol_angle,
+    get_run_period,
+)
 
 
 class CCDB(Task):
@@ -45,14 +52,14 @@ class CCDB(Task):
                     factors[run] = scale_factors
             pickle.dump(
                 CCDBData(factors),
-                (MISC_PATH / 'ccdb.pkl').open('wb'),
+                (self.outputs[0]).open('wb'),
             )
 
 
 class RCDB(Task):
     def __init__(self):
         MISC_PATH.mkdir(exist_ok=True, parents=True)
-        super().__init__('ccdb', outputs=[MISC_PATH / 'ccdb.pkl'])
+        super().__init__('rcdb', outputs=[MISC_PATH / 'rcdb.pkl'])
 
     @override
     def run(self):
@@ -71,7 +78,7 @@ class RCDB(Task):
             pol_angle_results = cursor.fetchall()
             for run_number, angle_deg in pol_angle_results:
                 run_period = get_run_period(run_number)
-                pol_angle = get_pol_angle(run_period, angle_deg)
+                pol_angle = get_pol_angle(run_period, str(angle_deg))
                 if pol_angle:
                     angles[run_number] = (
                         run_period,
@@ -91,7 +98,7 @@ class RCDB(Task):
             for pol in ['0', '45', '90', '135']:
                 hist = tfile[f'hPol{pol}']
                 if isinstance(hist, HasBranches | ReadOnlyDirectory):
-                    self.log_error(f'Error reading histograms from {hist_path}')
+                    self.logger.error(f'Error reading histograms from {hist_path}')
                     msg = f'Error reading histograms from {hist_path}'
                     raise OSError(msg)
                 mags, edges = hist.to_numpy()
@@ -99,7 +106,7 @@ class RCDB(Task):
             magnitudes[rp] = hists
         pickle.dump(
             RCDBData(angles, magnitudes),
-            (MISC_PATH / 'rcdb.pkl').open('wb'),
+            (self.outputs[0]).open('wb'),
         )
 
 

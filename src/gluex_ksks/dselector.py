@@ -172,10 +172,30 @@ data_analysis_sets = [
         'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ('s17', Path('/raid3/nhoffman/RunPeriod-2017-01/analysis/ver52/tree_ksks__B4/merged')),
-        ('s18', Path('/raid3/nhoffman/RunPeriod-2018-01/analysis/ver19/tree_ksks__B4/merged')),
-        ('f18', Path('/raid3/nhoffman/RunPeriod-2018-08/analysis/ver19/tree_ksks__B4/merged')),
-        ('s20', Path('/raid3/nhoffman/RunPeriod-2019-11/analysis/ver04/tree_ksks__B4/merged')),
+        (
+            's17',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2017-01/analysis/ver52/tree_ksks__B4/merged'
+            ),
+        ),
+        (
+            's18',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2018-01/analysis/ver19/tree_ksks__B4/merged'
+            ),
+        ),
+        (
+            'f18',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2018-08/analysis/ver19/tree_ksks__B4/merged'
+            ),
+        ),
+        (
+            's20',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2019-11/analysis/ver04/tree_ksks__B4/merged'
+            ),
+        ),
     ]
 ]
 sigmc_analysis_sets = [
@@ -192,10 +212,30 @@ sigmc_analysis_sets = [
         'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ('s17', Path('/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/ksks/tree_ksks__B4_gen_amp_large')),
-        ('s18', Path('/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large')),
-        ('f18', Path('/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large')),
-        ('s20', Path('/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/ksks/tree_ksks__B4_gen_amp_large')),
+        (
+            's17',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/ksks/tree_ksks__B4_gen_amp_large'
+            ),
+        ),
+        (
+            's18',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large'
+            ),
+        ),
+        (
+            'f18',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/ksks/tree_ksks__B4_gen_amp_large'
+            ),
+        ),
+        (
+            's20',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/ksks/tree_ksks__B4_gen_amp_large'
+            ),
+        ),
     ]
 ]
 bkgmc_analysis_sets = [
@@ -212,10 +252,30 @@ bkgmc_analysis_sets = [
         'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ('s17', Path('/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/4pi/tree_ksks__B4_gen_amp/')),
-        ('s18', Path('/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/')),
-        ('f18', Path('/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/')),
-        ('s20', Path('/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/4pi/tree_ksks__B4_gen_amp/')),
+        (
+            's17',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2017-01/flat_MC/ver52/4pi/tree_ksks__B4_gen_amp/'
+            ),
+        ),
+        (
+            's18',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2018-01/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/'
+            ),
+        ),
+        (
+            'f18',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2018-08/flat_MC/ver19/4pi/tree_ksks__B4_gen_amp/'
+            ),
+        ),
+        (
+            's20',
+            Path(
+                '/raid3/nhoffman/RunPeriod-2019-11/flat_MC/ver04/4pi/tree_ksks__B4_gen_amp/'
+            ),
+        ),
     ]
 ]
 bggen_analysis_sets = [
@@ -232,7 +292,12 @@ bggen_analysis_sets = [
         'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
-        ('s18', Path('/raid2/nhoffman/RunPeriod-2018-01/analysis/bggen/ver11/batch01/tree_ksks__B4/merged')),
+        (
+            's18',
+            Path(
+                '/raid2/nhoffman/RunPeriod-2018-01/analysis/bggen/ver11/batch01/tree_ksks__B4/merged'
+            ),
+        ),
     ]
 ]
 
@@ -283,7 +348,10 @@ def run_analysis(
     )
 
 
-def run_on_slurm(data_type: Literal['data', 'sigmc', 'bkgmc', 'bggen'], queue_name: Literal['blue', 'green']):
+def run_on_slurm(
+    data_type: Literal['data', 'sigmc', 'bkgmc', 'bggen'],
+    queue_name: Literal['blue', 'green'],
+):
     if data_type == 'data':
         analysis_sets = data_analysis_sets
     elif data_type == 'sigmc':

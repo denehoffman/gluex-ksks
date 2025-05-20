@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import pickle
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -18,9 +18,9 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
-def root_to_parquet(path: Path, tree: str = 'kin'):
+def root_to_parquet(input_path: Path, output_path: Path, tree: str = 'kin'):
     tt = uproot.open(
-        f'{path}:{tree}',
+        f'{input_path}:{tree}',
     )
     assert isinstance(tt, HasBranches)  # noqa: S101
     root_data = tt.arrays(library='np')
@@ -31,7 +31,7 @@ def root_to_parquet(path: Path, tree: str = 'kin'):
         if key.startswith('Weight'):
             root_data[key.replace('Weight', 'weight')] = root_data.pop(key)
     dataframe = pl.from_dict(root_data)
-    dataframe.write_parquet(path.with_suffix('.parquet'))
+    dataframe.write_parquet(output_path)
 
 
 @dataclass
@@ -51,7 +51,9 @@ class CCDBData:
             ScalingFactors,
         ],
     ):
-        self.accidental_scaling_factors: dict[int, ScalingFactors] = accidental_scaling_factors
+        self.accidental_scaling_factors: dict[int, ScalingFactors] = (
+            accidental_scaling_factors
+        )
 
     def get_scaling(
         self,
@@ -104,7 +106,9 @@ class Histogram:
         bins = histograms[0].bins
         for histogram in histograms:
             assert histogram.bins == bins  # noqa: S101
-        counts = np.sum(np.array([histogram.counts for histogram in histograms]), axis=0)
+        counts = np.sum(
+            np.array([histogram.counts for histogram in histograms]), axis=0
+        )
         return Histogram(counts, bins)
 
 

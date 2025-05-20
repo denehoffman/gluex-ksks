@@ -8,9 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+tmp/
+
 analysis/datasets
 analysis/raw_datasets
 analysis/plots
 analysis/reports
-tmp/
-.modak/
+analysis/misc
+analysis/logs
+
+.modak
+*.log
