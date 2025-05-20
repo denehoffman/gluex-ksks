@@ -1,6 +1,7 @@
 from pathlib import Path
 
 ANALYSIS_PATH = Path.cwd() / 'analysis'
+LOG_PATH = ANALYSIS_PATH / 'logs'
 DATASETS_PATH = ANALYSIS_PATH / 'datasets'
 DATA_PATH = ANALYSIS_PATH / 'datasets' / 'data'
 SIGMC_PATH = ANALYSIS_PATH / 'datasets' / 'sigmc'
