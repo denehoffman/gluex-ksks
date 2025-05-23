@@ -17,6 +17,7 @@ analysis/plots
 analysis/reports
 analysis/misc
 analysis/logs
+analysis/fits
 
 .modak
 *.log

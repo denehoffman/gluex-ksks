@@ -8,15 +8,18 @@ requires-python = ">=3.13"
 dependencies = [
   "click>=8.2.0",
   "iminuit>=2.31.1",
-  "laddu>=0.6.1",
+  "laddu>=0.7.0",
+  "matplotlib>=3.10.3",
   "modak>=0.2.0",
   "polars>=1.29.0",
+  "scipy>=1.15.3",
   "uproot>=5.6.1",
 ]
 
 [project.scripts]
-run-dselectors = "gluex_ksks.dselector:cli"
-get-databases = "gluex_ksks.tasks.databases:cli"
+gluex-init = "gluex_ksks.constants:mkdirs"
+gluex-run-dselectors = "gluex_ksks.dselector:cli"
+gluex-get-databases = "gluex_ksks.tasks.databases:cli"
 
 [build-system]
 requires = ["setuptools>=61"]

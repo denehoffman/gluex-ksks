@@ -1,4 +1,5 @@
 import pickle
+import shutil
 import sqlite3
 from pathlib import Path
 from typing import override
@@ -8,7 +9,7 @@ from modak import Task
 from uproot.behaviors.TBranch import HasBranches
 from uproot.reading import ReadOnlyDirectory
 
-from gluex_ksks.constants import MISC_PATH
+from gluex_ksks.constants import LOG_PATH, MISC_PATH
 from gluex_ksks.utils import (
     CCDBData,
     Histogram,
@@ -22,7 +23,11 @@ from gluex_ksks.utils import (
 class CCDB(Task):
     def __init__(self):
         MISC_PATH.mkdir(exist_ok=True, parents=True)
-        super().__init__('ccdb', outputs=[MISC_PATH / 'ccdb.pkl'])
+        super().__init__(
+            'ccdb',
+            outputs=[MISC_PATH / 'ccdb.pkl'],
+            log_directory=LOG_PATH,
+        )
 
     @override
     def run(self):
@@ -59,7 +64,11 @@ class CCDB(Task):
 class RCDB(Task):
     def __init__(self):
         MISC_PATH.mkdir(exist_ok=True, parents=True)
-        super().__init__('rcdb', outputs=[MISC_PATH / 'rcdb.pkl'])
+        super().__init__(
+            'rcdb',
+            outputs=[MISC_PATH / 'rcdb.pkl'],
+            log_directory=LOG_PATH,
+        )
 
     @override
     def run(self):
@@ -120,4 +129,4 @@ def cli():
         Path('/raid3/nhoffman/analysis/pol_hists/S20.root'): MISC_PATH / 's20.root',
     }
     for src, dst in path_map.items():
-        dst.hardlink_to(src)
+        shutil.copy(src, dst)

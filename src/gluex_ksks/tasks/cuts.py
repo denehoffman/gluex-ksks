@@ -5,45 +5,43 @@ from typing import override
 import polars as pl
 from modak import Task
 
-from gluex_ksks.constants import DATASETS_PATH
-from gluex_ksks.utils import get_ccdb, get_rcdb, root_to_parquet
+from gluex_ksks.constants import DATASET_PATH, LOG_PATH, RAW_DATASET_PATH
+from gluex_ksks.tasks.databases import CCDB, RCDB
+from gluex_ksks.utils import (
+    add_ksb_costheta,
+    get_ccdb,
+    get_rcdb,
+    select_mesons_tag,
+    root_to_dataframe,
+)
 
 
-class ConvertToParquet(Task):
+class AccPol(Task):
+    """
+    Accidental subtraction and polarization
+    """
+
     def __init__(self, *, data_type: str, run_period: str):
         self.data_type = data_type
         self.run_period = run_period
         super().__init__(
-            f'convert_to_parquet_{run_period}_{data_type}',
-            outputs=[DATASETS_PATH / data_type / f'{run_period}.parquet'],
+            f'accidentals_and_polarization_{self.data_type}_{self.run_period}',
+            inputs=[
+                RCDB(),
+                CCDB(),
+            ],
+            outputs=[DATASET_PATH[self.data_type] / f'{self.run_period}.parquet'],
+            log_directory=LOG_PATH,
         )
 
     @override
     def run(self):
-        root_path = DATASETS_PATH / self.data_type / f'{self.run_period}.root'
-        self.logger.info(f'Converting {root_path} to parquet')
-        root_to_parquet(root_path, self.outputs[0])
-        self.logger.info(f'Result written to {self.outputs[0]}')
-
-
-class AccidentalsAndPolarization(Task):
-    def __init__(self, *, data_type: str, run_period: str):
-        self.data_type = data_type
-        super().__init__(
-            f'accidentals_and_polarization_{run_period}_{data_type}',
-            inputs=[ConvertToParquet(data_type=data_type, run_period=run_period)],
-            outputs=[DATASETS_PATH / data_type / f'{run_period}_ap.parquet'],
-        )
-
-    @override
-    def run(self):
-        src = self.inputs[0].outputs[0]
+        srcs = (RAW_DATASET_PATH[self.data_type] / self.run_period).glob('*.root')
         dst = self.outputs[0]
         self.logger.info(
-            f'Adding beam polarization info and accidental weights to {src}'
+            f'Adding beam polarization info and accidental weights to {self.run_period} {self.data_type}'
         )
         is_mc = self.data_type != 'data'
-        src_data = pl.scan_parquet(src)
         rcdb = get_rcdb()
         ccdb = get_ccdb()
 
@@ -66,66 +64,179 @@ class AccidentalsAndPolarization(Task):
                 'aux_0_z': 0.0,
             }
 
-        dst_data = (
-            src_data.sort(['RunNumber', 'EventNumber', 'ChiSqDOF'])
-            .group_by(['RunNumber', 'EventNumber'])
-            .first()
-            .with_columns(
-                pl.struct('RunNumber', 'p4_0_E', 'RF', 'weight')
-                .map_elements(
-                    process,
-                    return_dtype=pl.Struct(
-                        {
-                            'aux_0_x': pl.Float64,
-                            'aux_0_y': pl.Float64,
-                            'aux_0_z': pl.Float64,
-                            'weight': pl.Float64,
-                        }
-                    ),
+        for src in srcs:
+            dst_path = src.with_suffix('.parquet')
+            if dst_path.exists():
+                self.logger.info(f'Skipping {src} ({dst_path} already exists)')
+                continue
+            self.logger.info(f'Converting {src} to polarized parquet')
+            src_data = root_to_dataframe(src)
+            dst_data = (
+                src_data.sort(['RunNumber', 'EventNumber', 'ChiSqDOF'])
+                .group_by(['RunNumber', 'EventNumber'])
+                .first()
+                .with_columns(
+                    pl.struct('RunNumber', 'p4_0_E', 'RF', 'weight')
+                    .map_elements(
+                        process,
+                        return_dtype=pl.Struct(
+                            {
+                                'aux_0_x': pl.Float64,
+                                'aux_0_y': pl.Float64,
+                                'aux_0_z': pl.Float64,
+                                'weight': pl.Float64,
+                            }
+                        ),
+                    )
+                    .alias('aux_struct')
                 )
-                .alias('aux_struct')
+                .drop('weight')
+                .unnest('aux_struct')
+                .filter(pl.col('aux_0_x').is_not_null())
+                .with_columns(
+                    [
+                        pl.col('aux_0_x').cast(pl.Float32),
+                        pl.col('aux_0_y').cast(pl.Float32),
+                        pl.col('aux_0_z').cast(pl.Float32),
+                        pl.col('weight').cast(pl.Float32),
+                    ]
+                )
+                .drop('RunNumber', 'EventNumber', 'ComboNumber')
+                # don't need these anymore
             )
-            .drop('weight')
-            .unnest('aux_struct')
-            .filter(pl.col('aux_0_x').is_not_null())
-            .with_columns(
-                [
-                    pl.col('aux_0_x').cast(pl.Float32),
-                    pl.col('aux_0_y').cast(pl.Float32),
-                    pl.col('aux_0_z').cast(pl.Float32),
-                    pl.col('weight').cast(pl.Float32),
-                ]
-            )
+            if dst_data.is_empty():
+                continue
+            dst_data.write_parquet(dst_path)
+        self.logger.info(f'Merging parquet files to {dst}')
+        dst_data = pl.concat(
+            [
+                pl.read_parquet(f)
+                for f in (RAW_DATASET_PATH[self.data_type] / self.run_period).glob(
+                    '*.parquet'
+                )
+            ],
+            how='diagonal',
+            rechunk=True,
         )
-        dst_data = dst_data.collect()
         dst_data.write_parquet(dst)
         self.logger.info(f'Result written to {dst}')
 
 
-class ChiSqDOF(Task):
-    def __init__(self, *, data_type: str, run_period: str, chisqdof: float):
+class FiducialCuts(Task):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        run_period: str,
+        protonz_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+    ):
         self.data_type = data_type
         self.run_period = run_period
+        self.cut_type = None
+        self.protonz_cut = protonz_cut
         self.chisqdof = chisqdof
+        self.select_mesons = select_mesons
+        self.tag = select_mesons_tag(self.select_mesons)
+        if self.select_mesons is not None:
+            inputs: list[Task] = [
+                FiducialCuts(
+                    data_type=self.data_type,
+                    run_period=self.run_period,
+                    protonz_cut=self.protonz_cut,
+                    chisqdof=self.chisqdof,
+                    select_mesons=None,
+                )
+            ]
+            outputs = [
+                inputs[0].outputs[0].parent
+                / f'{inputs[0].outputs[0].stem}_{self.tag}.parquet'
+            ]
+        elif self.chisqdof is not None:
+            inputs = [
+                FiducialCuts(
+                    data_type=self.data_type,
+                    run_period=self.run_period,
+                    protonz_cut=self.protonz_cut,
+                    chisqdof=None,
+                    select_mesons=self.select_mesons,
+                )
+            ]
+            outputs = [
+                inputs[0].outputs[0].parent
+                / f'{inputs[0].outputs[0].stem}_chisqdof_{self.chisqdof:.1f}.parquet'
+            ]
+        elif self.protonz_cut:
+            inputs = [
+                FiducialCuts(
+                    data_type=self.data_type,
+                    run_period=self.run_period,
+                    protonz_cut=False,
+                    chisqdof=self.chisqdof,
+                    select_mesons=self.select_mesons,
+                )
+            ]
+            outputs = [
+                inputs[0].outputs[0].parent / f'{inputs[0].outputs[0].stem}_pz.parquet'
+            ]
+        else:  # no cuts
+            inputs = [
+                AccPol(
+                    data_type=self.data_type,
+                    run_period=self.run_period,
+                )
+            ]
+            outputs = [inputs[0].outputs[0]]
         super().__init__(
-            f'chisqdof_{run_period}_{data_type}',
-            inputs=[
-                AccidentalsAndPolarization(data_type=data_type, run_period=run_period)
-            ],
-            outputs=[
-                DATASETS_PATH
-                / data_type
-                / f'{run_period}_ap_chisqdof_{self.chisqdof:.1f}.parquet'
-            ],
+            f'fiducial_cut_{self.data_type}_{self.run_period}_{self.protonz_cut}_{self.chisqdof}_{self.tag}',
+            inputs=inputs,
+            outputs=outputs,
+            log_directory=LOG_PATH,
         )
 
     @override
-    def run(self):
+    def run(self) -> None:
+        if self.select_mesons is not None:
+            self.cut_baryons()
+        elif self.chisqdof is not None:
+            self.cut_chisqdof()
+        elif self.protonz_cut:
+            self.cut_protonz()
+        else:
+            pass  # no-op
+
+    def cut_protonz(self):
+        src = self.inputs[0].outputs[0]
+        dst = self.outputs[0]
+        self.logger.info(f'Cutting Proton-z for {src}')
+        src_data = pl.scan_parquet(src)
+        dst_data = src_data.filter(pl.col('Proton_Z').is_between(50, 80))
+        dst_data = dst_data.collect()
+        dst_data.write_parquet(dst)
+        self.logger.info(f'Result written to {dst}')
+
+    def cut_chisqdof(self):
         src = self.inputs[0].outputs[0]
         dst = self.outputs[0]
         self.logger.info(f'Cutting χ²/DOF at {self.chisqdof} for {src}')
         src_data = pl.scan_parquet(src)
         dst_data = src_data.filter(pl.col('ChiSqDOF') < self.chisqdof)
+        dst_data = dst_data.collect()
+        dst_data.write_parquet(dst)
+        self.logger.info(f'Result written to {dst}')
+
+    def cut_baryons(self):
+        src = self.inputs[0].outputs[0]
+        dst = self.outputs[0]
+        self.logger.info(f'Cutting Backward K_S^0 cos(θ) at 0 for {src}')
+        src_data = add_ksb_costheta(pl.scan_parquet(src))
+
+        if self.select_mesons:
+            dst_data = src_data.filter(pl.col('ksb_costheta') >= 0.0)
+        else:
+            dst_data = src_data.filter(pl.col('ksb_costheta') < 0.0)
+        dst_data = dst_data.drop('ksb_costheta')
         dst_data = dst_data.collect()
         dst_data.write_parquet(dst)
         self.logger.info(f'Result written to {dst}')

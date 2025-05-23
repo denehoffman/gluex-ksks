@@ -5,6 +5,8 @@ from typing import Literal
 
 import click
 
+from gluex_ksks.constants import RAW_DATASET_PATH, mkdirs
+
 
 def generate_slurm_job(
     output_name: str,
@@ -113,43 +115,6 @@ echo "DONE"
 """
 
 
-def generate_parallel_hadd_job(
-    output_name: str,
-    *,
-    output_dir: Path,
-    raw_output_dir: Path,
-    job_name: str,
-    queue_name: str,
-    env_path: Path,
-    version_path: Path,
-    max_n_tasks: int,
-):
-    return f"""#!/bin/sh
-#SBATCH --job-name={job_name}
-#SBATCH --dependency=singleton
-#SBATCH --nodes=1
-#SBATCH --ntasks={max_n_tasks}
-#SBATCH --partition={queue_name}
-#SBATCH --output={raw_output_dir}/logs/merge_log_%A.out
-#SBATCH --error={raw_output_dir}/logs/merge_log_%A.err
-#SBATCH --time=1:00:00
-
-source {env_path} {version_path}
-
-echo "Merging flat trees..."
-echo "hadd -O -f -j {max_n_tasks} {output_dir}/{output_name}.root {raw_output_dir}/{output_name}/*.root"
-hadd -O -f -j {max_n_tasks} {output_dir}/{output_name}.root {raw_output_dir}/{output_name}/*.root
-
-echo "DONE"
-"""
-
-
-def mkdirs(output_name: str, output_dir: Path, raw_output_dir: Path):
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (raw_output_dir / 'logs').mkdir(parents=True, exist_ok=True)
-    (raw_output_dir / output_name).mkdir(parents=True, exist_ok=True)
-
-
 def run_slurm_script(content: str):
     with tempfile.NamedTemporaryFile('w+', suffix='.sh', delete=True) as temp:
         temp.write(content)
@@ -161,8 +126,7 @@ queues = {'blue': 64, 'green': 32}
 data_analysis_sets = [
     {
         'output_name': output_name,
-        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'data',
-        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'data',
+        'data_type': 'data',
         'input_dir': input_dir,
         'job_name': f'data_{output_name}',
         'dselector_c_path': Path.cwd()
@@ -201,8 +165,7 @@ data_analysis_sets = [
 sigmc_analysis_sets = [
     {
         'output_name': output_name,
-        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'sigmc',
-        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'sigmc',
+        'data_type': 'sigmc',
         'input_dir': input_dir,
         'job_name': f'sigmc_{output_name}',
         'dselector_c_path': Path.cwd()
@@ -241,8 +204,7 @@ sigmc_analysis_sets = [
 bkgmc_analysis_sets = [
     {
         'output_name': output_name,
-        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'bkgmc',
-        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'bkgmc',
+        'data_type': 'bkgmc',
         'input_dir': input_dir,
         'job_name': f'bkgmc_{output_name}',
         'dselector_c_path': Path.cwd()
@@ -281,8 +243,7 @@ bkgmc_analysis_sets = [
 bggen_analysis_sets = [
     {
         'output_name': output_name,
-        'output_dir': Path.cwd() / 'analysis' / 'datasets' / 'bggen',
-        'raw_output_dir': Path.cwd() / 'analysis' / 'raw_datasets' / 'bggen',
+        'data_type': 'bggen',
         'input_dir': input_dir,
         'job_name': f'bggen_{output_name}',
         'dselector_c_path': Path.cwd()
@@ -305,8 +266,7 @@ bggen_analysis_sets = [
 def run_analysis(
     output_name: str,
     *,
-    output_dir: Path,
-    raw_output_dir: Path,
+    data_type: str,
     input_dir: Path,
     job_name: str,
     queue_name: str,
@@ -314,15 +274,14 @@ def run_analysis(
     version_path: Path,
     dselector_c_path: Path,
     tree_name: str,
-    max_n_tasks: int,
 ):
     scratch_dir = Path.cwd() / 'tmp'
     scratch_dir.mkdir(parents=True, exist_ok=True)
-    mkdirs(output_name, output_dir, raw_output_dir)
+    mkdirs()
     run_slurm_script(
         generate_slurm_job(
             output_name,
-            raw_output_dir=raw_output_dir,
+            raw_output_dir=RAW_DATASET_PATH[data_type],
             input_dir=input_dir,
             job_name=job_name,
             queue_name=queue_name,
@@ -332,18 +291,6 @@ def run_analysis(
             dselector_c_path=dselector_c_path,
             dselector_h_path=dselector_c_path.with_suffix('.h'),
             tree_name=tree_name,
-        )
-    )
-    run_slurm_script(
-        generate_parallel_hadd_job(
-            output_name,
-            output_dir=output_dir,
-            raw_output_dir=raw_output_dir,
-            job_name=job_name,
-            queue_name=queue_name,
-            env_path=env_path,
-            version_path=version_path,
-            max_n_tasks=max_n_tasks,
         )
     )
 
@@ -365,7 +312,6 @@ def run_on_slurm(
         run_analysis(
             **analysis_set,
             queue_name=queue_name,
-            max_n_tasks=queues[queue_name],
             env_path=Path.cwd() / 'analysis' / 'env.sh',
             version_path=Path.cwd() / 'analysis' / 'version.xml',
         )
