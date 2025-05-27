@@ -1,5 +1,4 @@
-from pathlib import Path
-from typing import Any, Literal, override
+from typing import Literal, override
 from matplotlib import patches
 from modak import Task
 
@@ -51,305 +50,243 @@ from gluex_ksks.utils import (
 import matplotlib.pyplot as plt
 
 
-def _get_inputs(
-    *,
-    data_type: str,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-    method: Literal['fixed', 'free'] | None,
-    nspec: int | None,
-) -> list[Task]:
-    if method is None or nspec is None:
-        return [
-            FiducialCuts(
-                data_type=data_type,
-                run_period=run_period,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            )
-            for run_period in RUN_PERIODS
+class PlotTask(Task):
+    def __init__(
+        self,
+        name: str,
+        output_names: str | list[str],
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+        **kwargs,
+    ):
+        self.data_type = data_type
+        self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
+        self.chisqdof = chisqdof
+        self.select_mesons = select_mesons
+        self.method = method
+        self.nspec = nspec
+        if method is None or nspec is None:
+            inputs: list[Task] = [
+                FiducialCuts(
+                    data_type=data_type,
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                )
+                for run_period in RUN_PERIODS
+            ]
+        elif data_type == 'data':
+            assert method is not None
+            assert nspec is not None
+            inputs = [
+                SPlotWeights(
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                    method=method,
+                    nspec=nspec,
+                )
+                for run_period in RUN_PERIODS
+            ]
+        else:
+            raise ValueError('Unsupported data type + cut combination')
+        self.tag = select_mesons_tag(select_mesons)
+        if isinstance(output_names, str):
+            output_names = [output_names]
+        outputs = [
+            PLOTS_PATH
+            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.svg'
+            for name in output_names
         ]
-    elif data_type == 'data':
-        assert method is not None
-        assert nspec is not None
-        return [
-            SPlotWeights(
-                run_period=run_period,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            )
-            for run_period in RUN_PERIODS
-        ]
-    else:
-        raise ValueError('Unsupported data type + cut combination')
+        task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
+        self.short_name = name
+        super().__init__(
+            name=task_name,
+            inputs=inputs,
+            outputs=outputs,
+            log_directory=LOG_PATH,
+            **kwargs,
+        )
 
-
-def _get_inputs_combined(
-    *,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-) -> list[Task]:
-    return [
-        *[
-            FiducialCuts(
-                data_type='data',
-                run_period=run_period,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            )
-            for run_period in RUN_PERIODS
-        ],
-        *[
-            FiducialCuts(
-                data_type='sigmc',
-                run_period=run_period,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            )
-            for run_period in RUN_PERIODS
-        ],
-        *[
-            FiducialCuts(
-                data_type='bkgmc',
-                run_period=run_period,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            )
-            for run_period in RUN_PERIODS
-        ],
-    ]
-
-
-def _get_outputs(
-    names: str | list[str],
-    *,
-    data_type: str,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-    method: Literal['fixed', 'free'] | None,
-    nspec: int | None,
-) -> list[Path]:
-    tag = select_mesons_tag(select_mesons)
-    if isinstance(names, str):
-        names = [names]
-    return [
-        PLOTS_PATH
-        / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{f"_chisqdof_{chisqdof:.1f}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}.svg'
-        for name in names
-    ]
-
-
-def _get_unique_name(
-    name: str,
-    *,
-    data_type: str,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-    method: Literal['fixed', 'free'] | None,
-    nspec: int | None,
-) -> str:
-    tag = select_mesons_tag(select_mesons)
-    return f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{f"_chisqdof_{chisqdof:.1f}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}'
-
-
-def _get_super(
-    name: str,
-    output_names: str | list[str],
-    *,
-    data_type: str,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-    method: Literal['fixed', 'free'] | None,
-    nspec: int | None,
-) -> dict[str, Any]:
-    return {
-        'name': _get_unique_name(
-            name=name,
-            data_type=data_type,
-            protonz_cut=protonz_cut,
-            chisqdof=chisqdof,
-            select_mesons=select_mesons,
-            method=method,
-            nspec=nspec,
-        ),
-        'inputs': _get_inputs(
-            data_type=data_type,
-            protonz_cut=protonz_cut,
-            chisqdof=chisqdof,
-            select_mesons=select_mesons,
-            method=method,
-            nspec=nspec,
-        ),
-        'outputs': _get_outputs(
-            names=output_names,
-            data_type=data_type,
-            protonz_cut=protonz_cut,
-            chisqdof=chisqdof,
-            select_mesons=select_mesons,
-            method=method,
-            nspec=nspec,
-        ),
-        'log_directory': LOG_PATH,
-    }
-
-
-def _get_super_combined(
-    name: str,
-    output_names: str | list[str],
-    *,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-) -> dict[str, Any]:
-    return {
-        'name': _get_unique_name(
-            name=name,
-            data_type='combined',
-            protonz_cut=protonz_cut,
-            chisqdof=chisqdof,
-            select_mesons=select_mesons,
-            method=None,
-            nspec=None,
-        ),
-        'inputs': _get_inputs_combined(
-            protonz_cut=protonz_cut,
-            chisqdof=chisqdof,
-            select_mesons=select_mesons,
-        ),
-        'outputs': _get_outputs(
-            names=output_names,
-            data_type='combined',
-            protonz_cut=protonz_cut,
-            chisqdof=chisqdof,
-            select_mesons=select_mesons,
-            method=None,
-            nspec=None,
-        ),
-        'log_directory': LOG_PATH,
-    }
-
-
-def _log_plot_start(
-    logger,
-    name: str,
-    *,
-    data_type: str,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-    method: Literal['fixed', 'free'] | None,
-    nspec: int | None,
-) -> None:
-    tag = select_mesons_tag(select_mesons)
-    logger.info(
-        f'Plotting {name} for {data_type} (method={method}, nspec={nspec}) with pz={protonz_cut}, chisqdof={chisqdof}, select={tag}'
-    )
-
-
-def _log_plot_end(
-    logger,
-    name: str,
-    *,
-    data_type: str,
-    protonz_cut: bool,
-    chisqdof: float | None,
-    select_mesons: bool | None,
-    method: Literal['fixed', 'free'] | None,
-    nspec: int | None,
-) -> None:
-    tag = select_mesons_tag(select_mesons)
-    logger.info(
-        f'Finished plotting {name} for {data_type} (method={method}, nspec={nspec}) with pz={protonz_cut}, chisqdof={chisqdof}, select={tag}'
-    )
-
-
-def _read_inputs(inputs: list[Task]) -> pl.DataFrame:
-    return pl.concat(
-        [pl.read_parquet(inp.outputs[0]) for inp in inputs[: len(RUN_PERIODS)]],
-        how='diagonal',
-        rechunk=True,
-    )
-
-
-def _read_inputs_combined(
-    inputs: list[Task],
-) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    return (
-        pl.concat(
-            [pl.read_parquet(inp.outputs[0]) for inp in inputs[: len(RUN_PERIODS)]],
-            how='diagonal',
-            rechunk=True,
-        ),
-        pl.concat(
+    def read_inputs(self) -> pl.LazyFrame:
+        return pl.concat(
             [
-                pl.read_parquet(inp.outputs[0])
-                for inp in inputs[len(RUN_PERIODS) : 2 * len(RUN_PERIODS)]
+                pl.scan_parquet(inp.outputs[0], low_memory=True)
+                for inp in self.inputs[: len(RUN_PERIODS)]
             ],
             how='diagonal',
             rechunk=True,
-        ),
-        pl.concat(
-            [
-                pl.read_parquet(inp.outputs[0])
-                for inp in inputs[2 * len(RUN_PERIODS) : 3 * len(RUN_PERIODS)]
+        )
+
+    def log_plot_start(
+        self,
+    ) -> None:
+        self.logger.info(
+            f'Plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+        )
+
+    def log_plot_end(self) -> None:
+        self.logger.info(
+            f'Finished plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+        )
+
+
+class CombinedPlotTask(Task):
+    def __init__(
+        self,
+        name: str,
+        output_names: str | list[str],
+        *,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        **kwargs,
+    ):
+        self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
+        self.chisqdof = chisqdof
+        self.select_mesons = select_mesons
+        inputs: list[Task] = [
+            *[
+                FiducialCuts(
+                    data_type='data',
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                )
+                for run_period in RUN_PERIODS
             ],
-            how='diagonal',
-            rechunk=True,
-        ),
-    )
+            *[
+                FiducialCuts(
+                    data_type='sigmc',
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                )
+                for run_period in RUN_PERIODS
+            ],
+            *[
+                FiducialCuts(
+                    data_type='bkgmc',
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                )
+                for run_period in RUN_PERIODS
+            ],
+        ]
+        self.tag = select_mesons_tag(select_mesons)
+        if isinstance(output_names, str):
+            output_names = [output_names]
+        outputs = [
+            PLOTS_PATH
+            / f'{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}.svg'
+            for name in output_names
+        ]
+        task_name = f'plot_{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}'
+        self.short_name = name
+        super().__init__(
+            name=task_name,
+            inputs=inputs,
+            outputs=outputs,
+            log_directory=LOG_PATH,
+            **kwargs,
+        )
+
+    def read_inputs(self) -> tuple[pl.LazyFrame, pl.LazyFrame, pl.LazyFrame]:
+        return (
+            pl.concat(
+                [
+                    pl.scan_parquet(inp.outputs[0], low_memory=True)
+                    for inp in self.inputs[: len(RUN_PERIODS)]
+                ],
+                how='diagonal',
+                rechunk=True,
+            ),
+            pl.concat(
+                [
+                    pl.scan_parquet(inp.outputs[0], low_memory=True)
+                    for inp in self.inputs[len(RUN_PERIODS) : 2 * len(RUN_PERIODS)]
+                ],
+                how='diagonal',
+                rechunk=True,
+            ),
+            pl.concat(
+                [
+                    pl.scan_parquet(inp.outputs[0], low_memory=True)
+                    for inp in self.inputs[2 * len(RUN_PERIODS) : 3 * len(RUN_PERIODS)]
+                ],
+                how='diagonal',
+                rechunk=True,
+            ),
+        )
+
+    def log_plot_start(
+        self,
+    ) -> None:
+        self.logger.info(
+            f'Plotting {self.short_name} for combined datasets with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+        )
+
+    def log_plot_end(self) -> None:
+        self.logger.info(
+            f'Finished plotting {self.short_name} for combined datasets with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+        )
 
 
-class PlotMesonMass(Task):
+class PlotMesonMass(PlotTask):
     def __init__(
         self,
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.fixed = method == 'fixed'
-        self.nspec = nspec
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super(
-                'meson_mass',
-                ['meson_mass', 'ksb_costheta_v_meson_mass', 'meson_pdg'],
-                data_type=data_type,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            ),
+            'meson_mass',
+            ['meson_mass', 'ksb_costheta_v_meson_mass', 'meson_pdg'],
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'meson mass', **self.__dict__)
-        df_data = add_ksb_costheta(
-            add_m_meson(
-                _read_inputs(self.inputs),
+        self.log_plot_start()
+        df_data = (
+            add_ksb_costheta(
+                add_m_meson(
+                    self.read_inputs(),
+                )
             )
+            .select('m_meson', 'weight', 'ksb_costheta')
+            .collect()
         )
         counts, edges = np.histogram(
             df_data['m_meson'],
@@ -366,7 +303,7 @@ class PlotMesonMass(Task):
         bin_centers = (edges[:-1] + edges[1:]) / 2
         errors = np.sqrt(weights_squared)
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.stairs(counts, edges, color=BLUE)
         ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
@@ -460,48 +397,44 @@ class PlotMesonMass(Task):
         plt.savefig(self.outputs[2])
         plt.close()
 
-        _log_plot_end(self.logger, 'meson mass', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotBaryonMass(Task):
+class PlotBaryonMass(PlotTask):
     def __init__(
         self,
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.fixed = method == 'fixed'
-        self.nspec = nspec
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super(
-                'baryon_mass',
-                ['baryon_mass', 'ksb_costheta_v_baryon_mass'],
-                data_type=data_type,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            ),
+            'baryon_mass',
+            ['baryon_mass', 'ksb_costheta_v_baryon_mass'],
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'baryon mass', **self.__dict__)
-        df_data = add_ksb_costheta(
-            add_m_baryon(
-                _read_inputs(self.inputs),
+        self.log_plot_start()
+        df_data = (
+            add_ksb_costheta(
+                add_m_baryon(
+                    self.read_inputs(),
+                )
             )
+            .select('m_baryon', 'weight', 'ksb_costheta')
+            .collect()
         )
         counts, edges = np.histogram(
             df_data['m_baryon'],
@@ -518,7 +451,7 @@ class PlotBaryonMass(Task):
         bin_centers = (edges[:-1] + edges[1:]) / 2
         errors = np.sqrt(weights_squared)
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.stairs(counts, edges, color=BLUE)
         ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
@@ -543,51 +476,47 @@ class PlotBaryonMass(Task):
         ax.set_ylabel(r'$\cos\left(\theta\right)$ of $K_{S,B}^0$')
         plt.savefig(self.outputs[1])
         plt.close()
-        _log_plot_end(self.logger, 'baryon mass', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotAngles(Task):
+class PlotAngles(PlotTask):
     def __init__(
         self,
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.fixed = method == 'fixed'
-        self.nspec = nspec
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super(
-                'angle_plots',
-                ['costheta_hx_v_meson_mass', 'phi_hx_v_meson_mass'],
-                data_type=data_type,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            ),
+            'angle_plots',
+            ['costheta_hx_v_meson_mass', 'phi_hx_v_meson_mass'],
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'angle plots', **self.__dict__)
-        df_data = add_hx_angles(
-            add_m_meson(
-                _read_inputs(self.inputs),
+        self.log_plot_start()
+        df_data = (
+            add_hx_angles(
+                add_m_meson(
+                    self.read_inputs(),
+                )
             )
+            .select('m_meson', 'weight', 'hx_costheta', 'hx_phi')
+            .collect()
         )
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.hist2d(
             df_data['m_meson'],
@@ -613,45 +542,37 @@ class PlotAngles(Task):
         ax.set_ylabel(r'$\phi_{\text{HX}}$ (rad)')
         plt.savefig(self.outputs[1])
         plt.close()
-        _log_plot_end(self.logger, 'angle plots', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotRF(Task):
+class PlotRF(PlotTask):
     def __init__(
         self,
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.fixed = method == 'fixed'
-        self.nspec = nspec
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super(
-                'rf',
-                ['rf_weighted', 'rf_unweighted'],
-                data_type=data_type,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            ),
+            'rf',
+            ['rf_weighted', 'rf_unweighted'],
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'rf', **self.__dict__)
-        df_data = _read_inputs(self.inputs)
+        self.log_plot_start()
+        df_data = self.read_inputs().select('RF', 'weight').collect()
         counts, edges = np.histogram(
             df_data['RF'],
             bins=RF_BINS,
@@ -673,11 +594,10 @@ class PlotRF(Task):
         bin_centers = (edges[:-1] + edges[1:]) / 2
         errors = np.sqrt(weights_squared)
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.stairs(counts, edges, color=BLUE)
         ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
-        ax.set_ylim(0)
         ax.set_xlabel(r'$\Delta t_{\text{RF}}$ (ns)')
         bin_width = int((RF_RANGE[1] - RF_RANGE[0]) / RF_BINS * 1000)
         ax.set_ylabel(f'Counts / {bin_width} (ps)')
@@ -687,52 +607,49 @@ class PlotRF(Task):
         _, ax = plt.subplots()
         ax.stairs(counts_unweighted, edges, color=BLUE)
         ax.errorbar(
-            bin_centers, counts, yerr=np.sqrt(counts_unweighted), fmt='none', color=BLUE
+            bin_centers,
+            counts_unweighted,
+            yerr=np.sqrt(counts_unweighted),
+            fmt='none',
+            color=BLUE,
         )
         ax.set_xlabel(r'$\Delta t_{\text{RF}}$ (ns)')
         bin_width = int((RF_RANGE[1] - RF_RANGE[0]) / RF_BINS * 1000)
         ax.set_ylabel(f'Counts / {bin_width} (ps)')
+        ax.set_ylim(0)
         plt.savefig(self.outputs[1])
         plt.close()
-        _log_plot_end(self.logger, 'rf', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotChiSqDOF(Task):
+class PlotChiSqDOF(PlotTask):
     def __init__(
         self,
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.fixed = method == 'fixed'
-        self.nspec = nspec
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super(
-                'chisqdof',
-                'chisqdof',
-                data_type=data_type,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            ),
+            'chisqdof',
+            'chisqdof',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'chisqdof', **self.__dict__)
-        df_data = _read_inputs(self.inputs)
+        self.log_plot_start()
+        df_data = self.read_inputs().select('ChiSqDOF', 'weight').collect()
         counts, edges = np.histogram(
             df_data['ChiSqDOF'],
             bins=CHISQDOF_BINS,
@@ -748,7 +665,7 @@ class PlotChiSqDOF(Task):
         bin_centers = (edges[:-1] + edges[1:]) / 2
         errors = np.sqrt(weights_squared)
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.stairs(counts, edges, color=BLUE)
         ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
@@ -758,37 +675,36 @@ class PlotChiSqDOF(Task):
         ax.set_ylabel(f'Counts / {bin_width}')
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'chisqdof', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotChiSqDOFCombined(Task):
+class PlotChiSqDOFCombined(CombinedPlotTask):
     def __init__(
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super_combined(
-                'chisqdof',
-                'chisqdof',
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            ),
+            'chisqdof',
+            'chisqdof',
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'chisqdof', **self.__dict__)
-        df_data, df_sigmc, df_bkgmc = _read_inputs_combined(self.inputs)
+        self.log_plot_start()
+        df_data, df_sigmc, df_bkgmc = self.read_inputs()
+        df_data = df_data.select('ChiSqDOF', 'weight').collect()
+        df_sigmc = df_sigmc.select('ChiSqDOF', 'weight').collect()
+        df_bkgmc = df_bkgmc.select('ChiSqDOF', 'weight').collect()
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.hist(
             df_data['ChiSqDOF'],
@@ -826,41 +742,47 @@ class PlotChiSqDOFCombined(Task):
         ax.set_ylabel(f'Normalized Counts / {bin_width}')
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'chisqdof', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotYoudenJAndROC(Task):
+class PlotYoudenJAndROC(CombinedPlotTask):
     def __init__(
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super_combined(
-                'chisqdof_youdenj_and_roc',
-                ['chisqdof_youdenj', 'chisqdof_roc'],
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            ),
+            'chisqdof_youdenj_and_roc',
+            ['chisqdof_youdenj', 'chisqdof_roc'],
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'chisqdof_youdenj_and_roc', **self.__dict__)
-        _, df_sigmc, df_bkgmc = _read_inputs_combined(self.inputs)
+        self.log_plot_start()
+        _, df_sigmc, df_bkgmc = self.read_inputs()
+        df_sigmc = df_sigmc.select('ChiSqDOF', 'weight').collect()
+        df_bkgmc = df_bkgmc.select('ChiSqDOF', 'weight').collect()
 
         h_sigmc, edges = np.histogram(
-            df_sigmc['ChiSqDOF'], bins=YOUDENJ_BINS, range=YOUDENJ_RANGE, density=True
+            df_sigmc['ChiSqDOF'],
+            bins=YOUDENJ_BINS,
+            range=YOUDENJ_RANGE,
+            weights=df_sigmc['weight'],
+            density=True,
         )
         h_bkgmc, _ = np.histogram(
-            df_bkgmc['ChiSqDOF'], bins=YOUDENJ_BINS, range=YOUDENJ_RANGE, density=True
+            df_bkgmc['ChiSqDOF'],
+            bins=YOUDENJ_BINS,
+            range=YOUDENJ_RANGE,
+            weights=df_bkgmc['weight'],
+            density=True,
         )
 
         sigmc_cumsum = np.cumsum(h_sigmc)
@@ -872,7 +794,7 @@ class PlotYoudenJAndROC(Task):
         cut_values = edges[:-1]
         max_j = cut_values[max_j_index]
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.plot(
             cut_values,
@@ -913,45 +835,37 @@ class PlotYoudenJAndROC(Task):
         ax.axis('square')
         plt.savefig(self.outputs[1])
         plt.close()
-        _log_plot_end(self.logger, 'chisqdof_youdenj_and_roc', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotProtonZ(Task):
+class PlotProtonZ(PlotTask):
     def __init__(
         self,
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.fixed = method == 'fixed'
-        self.nspec = nspec
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super(
-                'protonz',
-                'protonz',
-                data_type=data_type,
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-                method=method,
-                nspec=nspec,
-            ),
+            'protonz',
+            'protonz',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'protonz', **self.__dict__)
-        df_data = _read_inputs(self.inputs)
+        self.log_plot_start()
+        df_data = self.read_inputs().select('Proton_Z', 'weight').collect()
         counts, edges = np.histogram(
             df_data['Proton_Z'],
             bins=PROTONZ_BINS,
@@ -967,7 +881,7 @@ class PlotProtonZ(Task):
         bin_centers = (edges[:-1] + edges[1:]) / 2
         errors = np.sqrt(weights_squared)
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.stairs(counts, edges, color=BLUE)
         ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
@@ -977,37 +891,36 @@ class PlotProtonZ(Task):
         ax.set_ylabel(f'Counts / {bin_width} (cm)')
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'protonz', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotProtonZCombined(Task):
+class PlotProtonZCombined(CombinedPlotTask):
     def __init__(
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super_combined(
-                'protonz',
-                'protonz',
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            ),
+            'protonz',
+            'protonz',
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'protonz', **self.__dict__)
-        df_data, df_sigmc, df_bkgmc = _read_inputs_combined(self.inputs)
+        self.log_plot_start()
+        df_data, df_sigmc, df_bkgmc = self.read_inputs()
+        df_data = df_data.select('Proton_Z', 'weight').collect()
+        df_sigmc = df_sigmc.select('Proton_Z', 'weight').collect()
+        df_bkgmc = df_bkgmc.select('Proton_Z', 'weight').collect()
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.hist(
             df_data['Proton_Z'],
@@ -1043,39 +956,39 @@ class PlotProtonZCombined(Task):
         ax.set_xlabel(r'Proton $z$-vertex (cm)')
         bin_width = int((PROTONZ_RANGE[1] - PROTONZ_RANGE[0]) / PROTONZ_BINS)
         ax.set_ylabel(f'Normalized Counts / {bin_width} (cm)')
+        ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'protonz', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotRFLCombined(Task):
+class PlotRFLCombined(CombinedPlotTask):
     def __init__(
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super_combined(
-                'rfl',
-                'rfl',
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            ),
+            'rfl',
+            'rfl',
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'rfl', **self.__dict__)
-        df_data, df_sigmc, df_bkgmc = _read_inputs_combined(self.inputs)
+        self.log_plot_start()
+        df_data, df_sigmc, df_bkgmc = self.read_inputs()
+        df_data = df_data.select('RFL1', 'weight').collect()
+        df_sigmc = df_sigmc.select('RFL1', 'weight').collect()
+        df_bkgmc = df_bkgmc.select('RFL1', 'weight').collect()
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.hist(
             df_data['RFL1'],
@@ -1111,39 +1024,39 @@ class PlotRFLCombined(Task):
         ax.set_xlabel(r'$K_S^0$ Rest Frame Lifetime (ns)')
         bin_width = int((RFL_RANGE[1] - RFL_RANGE[0]) / RFL_BINS * 1000)
         ax.set_ylabel(f'Normalized Counts / {bin_width} (ps)')
+        ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'rfl', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotMM2Combined(Task):
+class PlotMM2Combined(CombinedPlotTask):
     def __init__(
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super_combined(
-                'mm2',
-                'mm2',
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            ),
+            'mm2',
+            'mm2',
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'mm2', **self.__dict__)
-        df_data, df_sigmc, df_bkgmc = _read_inputs_combined(self.inputs)
+        self.log_plot_start()
+        df_data, df_sigmc, df_bkgmc = self.read_inputs()
+        df_data = df_data.select('MM2', 'weight').collect()
+        df_sigmc = df_sigmc.select('MM2', 'weight').collect()
+        df_bkgmc = df_bkgmc.select('MM2', 'weight').collect()
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.hist(
             df_data['MM2'],
@@ -1179,39 +1092,39 @@ class PlotMM2Combined(Task):
         ax.set_xlabel(r'Missing Mass Squared ($\text{{GeV}}^2/c^4$)')
         bin_width = round((MM2_RANGE[1] - MM2_RANGE[0]) / MM2_BINS, 3)
         ax.set_ylabel(rf'Normalized Counts / {bin_width} ($\text{{GeV}}^2/c^4$)')
+        ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'mm2', **self.__dict__)
+        self.log_plot_end()
 
 
-class PlotMECombined(Task):
+class PlotMECombined(CombinedPlotTask):
     def __init__(
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.tag = select_mesons_tag(select_mesons)
         super().__init__(
-            **_get_super_combined(
-                'me',
-                'me',
-                protonz_cut=protonz_cut,
-                chisqdof=chisqdof,
-                select_mesons=select_mesons,
-            ),
+            'me',
+            'me',
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
         )
 
     @override
     def run(self) -> None:
-        _log_plot_start(self.logger, 'me', **self.__dict__)
-        df_data, df_sigmc, df_bkgmc = _read_inputs_combined(self.inputs)
+        self.log_plot_start()
+        df_data, df_sigmc, df_bkgmc = self.read_inputs()
+        df_data = df_data.select('ME', 'weight').collect()
+        df_sigmc = df_sigmc.select('ME', 'weight').collect()
+        df_bkgmc = df_bkgmc.select('ME', 'weight').collect()
 
-        plt.style.use('thesis')
+        plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         ax.hist(
             df_data['ME'],
@@ -1247,9 +1160,10 @@ class PlotMECombined(Task):
         ax.set_xlabel(r'Missing Energy ($\text{{GeV}}^2$)')
         bin_width = round((ME_RANGE[1] - ME_RANGE[0]) / ME_BINS, 3)
         ax.set_ylabel(rf'Normalized Counts / {bin_width} ($\text{{GeV}}^2$)')
+        ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()
-        _log_plot_end(self.logger, 'me', **self.__dict__)
+        self.log_plot_end()
 
 
 class PlotAll(Task):
@@ -1258,32 +1172,43 @@ class PlotAll(Task):
         *,
         data_type: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
     ):
-        self.data_type = data_type
-        self.protonz_cut = protonz_cut
-        self.chisqdof = chisqdof
-        self.select_mesons = select_mesons
-        self.method = method
-        self.nspec = nspec
+        single_plot_kwargs = {
+            'data_type': data_type,
+            'protonz_cut': protonz_cut,
+            'mass_cut': mass_cut,
+            'chisqdof': chisqdof,
+            'select_mesons': select_mesons,
+            'method': method,
+            'nspec': nspec,
+        }
+        combined_plot_kwargs = {
+            'protonz_cut': protonz_cut,
+            'mass_cut': mass_cut,
+            'chisqdof': chisqdof,
+            'select_mesons': select_mesons,
+        }
+        tag = select_mesons_tag(select_mesons)
         super().__init__(
-            name=_get_unique_name('all', **self.__dict__),
+            name=f'plot_all_{data_type}{"_pz" if protonz_cut else ""}{"masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}',
             inputs=[
-                PlotMesonMass(**self.__dict__),
-                PlotBaryonMass(**self.__dict__),
-                PlotAngles(**self.__dict__),
-                PlotChiSqDOF(**self.__dict__),
-                PlotChiSqDOFCombined(**self.__dict__),
-                PlotYoudenJAndROC(**self.__dict__),
-                PlotProtonZ(**self.__dict__),
-                PlotProtonZCombined(**self.__dict__),
-                PlotRFLCombined(**self.__dict__),
-                PlotMM2Combined(**self.__dict__),
-                PlotMECombined(**self.__dict__),
-                PlotRF(**self.__dict__),
+                PlotMesonMass(**single_plot_kwargs),
+                PlotBaryonMass(**single_plot_kwargs),
+                PlotAngles(**single_plot_kwargs),
+                PlotChiSqDOF(**single_plot_kwargs),
+                PlotChiSqDOFCombined(**combined_plot_kwargs),
+                PlotYoudenJAndROC(**combined_plot_kwargs),
+                PlotProtonZ(**single_plot_kwargs),
+                PlotProtonZCombined(**combined_plot_kwargs),
+                PlotRFLCombined(**combined_plot_kwargs),
+                PlotMM2Combined(**combined_plot_kwargs),
+                PlotMECombined(**combined_plot_kwargs),
+                PlotRF(**single_plot_kwargs),
             ],
             outputs=[],
             log_directory=LOG_PATH,

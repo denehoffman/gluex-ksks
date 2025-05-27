@@ -9,6 +9,7 @@ from gluex_ksks.constants import DATASET_PATH, LOG_PATH, RAW_DATASET_PATH
 from gluex_ksks.tasks.databases import CCDB, RCDB
 from gluex_ksks.utils import (
     add_ksb_costheta,
+    add_m_meson,
     get_ccdb,
     get_rcdb,
     select_mesons_tag,
@@ -101,7 +102,7 @@ class AccPol(Task):
                         pl.col('weight').cast(pl.Float32),
                     ]
                 )
-                .drop('RunNumber', 'EventNumber', 'ComboNumber')
+                .drop('RunNumber', 'EventNumber')
                 # don't need these anymore
             )
             if dst_data.is_empty():
@@ -110,7 +111,7 @@ class AccPol(Task):
         self.logger.info(f'Merging parquet files to {dst}')
         dst_data = pl.concat(
             [
-                pl.read_parquet(f)
+                pl.scan_parquet(f)
                 for f in (RAW_DATASET_PATH[self.data_type] / self.run_period).glob(
                     '*.parquet'
                 )
@@ -118,7 +119,7 @@ class AccPol(Task):
             how='diagonal',
             rechunk=True,
         )
-        dst_data.write_parquet(dst)
+        dst_data.sink_parquet(dst)
         self.logger.info(f'Result written to {dst}')
 
 
@@ -129,6 +130,7 @@ class FiducialCuts(Task):
         data_type: str,
         run_period: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
     ):
@@ -136,6 +138,7 @@ class FiducialCuts(Task):
         self.run_period = run_period
         self.cut_type = None
         self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
         self.tag = select_mesons_tag(self.select_mesons)
@@ -145,6 +148,7 @@ class FiducialCuts(Task):
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=self.protonz_cut,
+                    mass_cut=self.mass_cut,
                     chisqdof=self.chisqdof,
                     select_mesons=None,
                 )
@@ -159,13 +163,29 @@ class FiducialCuts(Task):
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=self.protonz_cut,
+                    mass_cut=self.mass_cut,
                     chisqdof=None,
                     select_mesons=self.select_mesons,
                 )
             ]
             outputs = [
                 inputs[0].outputs[0].parent
-                / f'{inputs[0].outputs[0].stem}_chisqdof_{self.chisqdof:.1f}.parquet'
+                / f'{inputs[0].outputs[0].stem}_chisqdof_{self.chisqdof}.parquet'
+            ]
+        elif self.mass_cut:
+            inputs = [
+                FiducialCuts(
+                    data_type=self.data_type,
+                    run_period=self.run_period,
+                    protonz_cut=self.protonz_cut,
+                    mass_cut=False,
+                    chisqdof=self.chisqdof,
+                    select_mesons=self.select_mesons,
+                )
+            ]
+            outputs = [
+                inputs[0].outputs[0].parent
+                / f'{inputs[0].outputs[0].stem}_masscut.parquet'
             ]
         elif self.protonz_cut:
             inputs = [
@@ -173,6 +193,7 @@ class FiducialCuts(Task):
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=False,
+                    mass_cut=self.mass_cut,
                     chisqdof=self.chisqdof,
                     select_mesons=self.select_mesons,
                 )
@@ -189,7 +210,7 @@ class FiducialCuts(Task):
             ]
             outputs = [inputs[0].outputs[0]]
         super().__init__(
-            f'fiducial_cut_{self.data_type}_{self.run_period}_{self.protonz_cut}_{self.chisqdof}_{self.tag}',
+            f'fiducial_cut_{self.data_type}_{self.run_period}_{self.protonz_cut}_{self.mass_cut}_{self.chisqdof}_{self.tag}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -201,6 +222,8 @@ class FiducialCuts(Task):
             self.cut_baryons()
         elif self.chisqdof is not None:
             self.cut_chisqdof()
+        elif self.mass_cut:
+            self.cut_mass()
         elif self.protonz_cut:
             self.cut_protonz()
         else:
@@ -212,8 +235,16 @@ class FiducialCuts(Task):
         self.logger.info(f'Cutting Proton-z for {src}')
         src_data = pl.scan_parquet(src)
         dst_data = src_data.filter(pl.col('Proton_Z').is_between(50, 80))
-        dst_data = dst_data.collect()
-        dst_data.write_parquet(dst)
+        dst_data.sink_parquet(dst)
+        self.logger.info(f'Result written to {dst}')
+
+    def cut_mass(self):
+        src = self.inputs[0].outputs[0]
+        dst = self.outputs[0]
+        self.logger.info(f'Cutting KsKs Mass for {src}')
+        src_data = add_m_meson(pl.scan_parquet(src))
+        dst_data = src_data.filter(pl.col('m_meson').lt(2.0)).drop('m_meson')
+        dst_data.sink_parquet(dst)
         self.logger.info(f'Result written to {dst}')
 
     def cut_chisqdof(self):
@@ -222,8 +253,7 @@ class FiducialCuts(Task):
         self.logger.info(f'Cutting χ²/DOF at {self.chisqdof} for {src}')
         src_data = pl.scan_parquet(src)
         dst_data = src_data.filter(pl.col('ChiSqDOF') < self.chisqdof)
-        dst_data = dst_data.collect()
-        dst_data.write_parquet(dst)
+        dst_data.sink_parquet(dst)
         self.logger.info(f'Result written to {dst}')
 
     def cut_baryons(self):
@@ -237,6 +267,5 @@ class FiducialCuts(Task):
         else:
             dst_data = src_data.filter(pl.col('ksb_costheta') < 0.0)
         dst_data = dst_data.drop('ksb_costheta')
-        dst_data = dst_data.collect()
-        dst_data.write_parquet(dst)
+        dst_data.sink_parquet(dst)
         self.logger.info(f'Result written to {dst}')

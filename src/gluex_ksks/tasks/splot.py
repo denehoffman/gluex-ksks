@@ -28,7 +28,6 @@ def run_splot_fit(
     arrays_bkgmc: SPlotArrays,
     *,
     nspec: int,
-    nbins: int,
     fixed: bool,
     logger,
 ) -> SPlotFitResult:
@@ -37,7 +36,6 @@ def run_splot_fit(
     )
     sigmc_fit_components = get_sigmc_fit_components(
         arrays=arrays_sigmc,
-        nbins=nbins,
     )
     sigmc_pdf_evaluated = sigmc_fit_components.pdf(arrays_data.rfl1, arrays_data.rfl2)
 
@@ -127,7 +125,10 @@ def run_splot_fit(
             for i in range(nspec + 1)
         ]
     )
+    logger.info(f'v_inv =\n{v_inv}')
     v: FloatArray = np.linalg.inv(v_inv)
+    logger.info(f'v =\n{v}')
+    logger.info(f'λs = {ldas}')
     return SPlotFitResult(
         sigmc_fit_components, yields, ldas, FitResult.from_opt(opt, len(arrays_data)), v
     )
@@ -138,12 +139,14 @@ class SPlotFit(Task):
         self,
         *,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'],
         nspec: int,
     ):
         self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
         self.method = method
@@ -155,6 +158,7 @@ class SPlotFit(Task):
                     data_type='data',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
                 )
@@ -165,6 +169,7 @@ class SPlotFit(Task):
                     data_type='sigmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
                 )
@@ -175,6 +180,7 @@ class SPlotFit(Task):
                     data_type='bkgmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
                 )
@@ -184,10 +190,10 @@ class SPlotFit(Task):
         self.tag = select_mesons_tag(self.select_mesons)
         outputs = [
             FITS_PATH
-            / f'splot_fit{"_pz" if self.protonz_cut else ""}{f"_chisqdof_{self.chisqdof:.1f}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}.pkl'
+            / f'splot_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}.pkl'
         ]
         super().__init__(
-            name=f'factorization_fit{"_pz" if self.protonz_cut else ""}{f"_chisqdof_{self.chisqdof:.1f}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}',
+            name=f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -196,13 +202,13 @@ class SPlotFit(Task):
     @override
     def run(self) -> None:
         self.logger.info(
-            f'Running sPlot fit (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Running sPlot fit (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
         arrays_data = SPlotArrays.from_polars(
             add_m_meson(
                 pl.concat(
                     [
-                        pl.read_parquet(inp.outputs[0])
+                        pl.scan_parquet(inp.outputs[0])
                         for inp in self.inputs[: len(RUN_PERIODS)]
                     ],
                     how='diagonal',
@@ -215,7 +221,7 @@ class SPlotFit(Task):
             add_m_meson(
                 pl.concat(
                     [
-                        pl.read_parquet(inp.outputs[0])
+                        pl.scan_parquet(inp.outputs[0])
                         for inp in self.inputs[len(RUN_PERIODS) : 2 * len(RUN_PERIODS)]
                     ],
                     how='diagonal',
@@ -228,7 +234,7 @@ class SPlotFit(Task):
             add_m_meson(
                 pl.concat(
                     [
-                        pl.read_parquet(inp.outputs[0])
+                        pl.scan_parquet(inp.outputs[0])
                         for inp in self.inputs[
                             2 * len(RUN_PERIODS) : 3 * len(RUN_PERIODS)
                         ]
@@ -244,7 +250,6 @@ class SPlotFit(Task):
             arrays_sigmc,
             arrays_bkgmc,
             nspec=self.nspec,
-            nbins=200,
             fixed=self.fixed,
             logger=self.logger,
         )
@@ -282,6 +287,7 @@ class SPlotWeights(Task):
         *,
         run_period: str,
         protonz_cut: bool,
+        mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         method: Literal['fixed', 'free'],
@@ -289,6 +295,7 @@ class SPlotWeights(Task):
     ):
         self.run_period = run_period
         self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
         self.tag = 'None'
@@ -300,6 +307,7 @@ class SPlotWeights(Task):
         inputs: list[Task] = [
             SPlotFit(
                 protonz_cut=self.protonz_cut,
+                mass_cut=self.mass_cut,
                 chisqdof=self.chisqdof,
                 select_mesons=self.select_mesons,
                 method=self.method,
@@ -309,6 +317,7 @@ class SPlotWeights(Task):
                 data_type='data',
                 run_period=self.run_period,
                 protonz_cut=self.protonz_cut,
+                mass_cut=self.mass_cut,
                 chisqdof=self.chisqdof,
                 select_mesons=self.select_mesons,
             ),
@@ -319,7 +328,7 @@ class SPlotWeights(Task):
             / f'{inputs[1].outputs[0].stem}_{self.method}_{self.nspec}.parquet'
         ]
         super().__init__(
-            name=f'splot_weights_{self.run_period}_{"_pz" if self.protonz_cut else ""}{f"_chisqdof_{self.chisqdof:.1f}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}',
+            name=f'splot_weights_{self.run_period}_{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -328,7 +337,7 @@ class SPlotWeights(Task):
     @override
     def run(self) -> None:
         self.logger.info(
-            f'Running sPlot weights (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Running sPlot weights (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
         fit_result: SPlotFitResult = pickle.load(self.inputs[0].outputs[0].open('rb'))
         data = pl.read_parquet(self.inputs[1].outputs[0])

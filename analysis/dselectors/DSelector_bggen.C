@@ -16,49 +16,48 @@ void DSelector_phase_1::Init(TTree *locTree) {
 
     dFlatTreeInterface->Create_Branch_Fundamental<UInt_t>("RunNumber");
     dFlatTreeInterface->Create_Branch_Fundamental<ULong64_t>("EventNumber");
-    dFlatTreeInterface->Create_Branch_Fundamental<UInt_t>("ComboNumber");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("Weight");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("weight");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_0_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_0_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_0_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_0_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_0_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_0_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_0_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_0_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_1_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_1_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_1_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_1_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_1_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_1_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_1_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_1_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_2_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_2_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_2_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_2_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_2_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_2_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_2_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_2_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_3_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_3_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_3_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_3_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_3_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_3_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_3_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_3_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_4_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_4_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_4_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_4_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_4_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_4_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_4_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_4_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_5_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_5_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_5_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_5_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_5_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_5_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_5_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_5_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_6_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_6_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_6_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_6_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_6_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_6_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_6_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_6_Pz");
 
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_7_E");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_7_Px");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_7_Py");
-    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("P4_7_Pz");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_7_E");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_7_Px");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_7_Py");
+    dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("p4_7_Pz");
 
     dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("ME");
     dFlatTreeInterface->Create_Branch_Fundamental<Float_t>("MM2");
@@ -412,58 +411,57 @@ Bool_t DSelector_phase_1::Process(Long64_t locEntry) {
         // Fill labeling branches
         dFlatTreeInterface->Fill_Fundamental<UInt_t>("RunNumber", locRunNumber);
         dFlatTreeInterface->Fill_Fundamental<ULong64_t>("EventNumber", Get_EventNumber());
-        dFlatTreeInterface->Fill_Fundamental<UInt_t>("ComboNumber", loc_i);
 
         // Fill Flat Weight branch
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("Weight", 1.0);
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("weight", 1.0);
 
         // Fill Flat P4_0 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_0_E", locBeamP4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_0_Px", locBeamP4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_0_Py", locBeamP4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_0_Pz", locBeamP4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_0_E", locBeamP4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_0_Px", locBeamP4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_0_Py", locBeamP4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_0_Pz", locBeamP4.Pz());
 
         // Fill Flat P4_1 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_1_E", locProtonP4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_1_Px", locProtonP4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_1_Py", locProtonP4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_1_Pz", locProtonP4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_1_E", locProtonP4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_1_Px", locProtonP4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_1_Py", locProtonP4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_1_Pz", locProtonP4.Pz());
 
         // Fill Flat P4_2 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_2_E", locDecayingKShort1P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_2_Px", locDecayingKShort1P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_2_Py", locDecayingKShort1P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_2_Pz", locDecayingKShort1P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_2_E", locDecayingKShort1P4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_2_Px", locDecayingKShort1P4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_2_Py", locDecayingKShort1P4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_2_Pz", locDecayingKShort1P4.Pz());
 
         // Fill Flat P4_3 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_3_E", locDecayingKShort2P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_3_Px", locDecayingKShort2P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_3_Py", locDecayingKShort2P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_3_Pz", locDecayingKShort2P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_3_E", locDecayingKShort2P4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_3_Px", locDecayingKShort2P4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_3_Py", locDecayingKShort2P4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_3_Pz", locDecayingKShort2P4.Pz());
 
         // Fill Flat P4_4 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_4_E", locPiPlus1P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_4_Px", locPiPlus1P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_4_Py", locPiPlus1P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_4_Pz", locPiPlus1P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_E", locPiPlus1P4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Px", locPiPlus1P4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Py", locPiPlus1P4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Pz", locPiPlus1P4.Pz());
 
         // Fill Flat P4_5 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_5_E", locPiMinus1P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_5_Px", locPiMinus1P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_5_Py", locPiMinus1P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_5_Pz", locPiMinus1P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_E", locPiMinus1P4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Px", locPiMinus1P4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Py", locPiMinus1P4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Pz", locPiMinus1P4.Pz());
 
         // Fill Flat P4_6 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_6_E", locPiPlus2P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_6_Px", locPiPlus2P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_6_Py", locPiPlus2P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_6_Pz", locPiPlus2P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_E", locPiPlus2P4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Px", locPiPlus2P4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Py", locPiPlus2P4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Pz", locPiPlus2P4.Pz());
 
         // Fill Flat P4_7 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_7_E", locPiMinus2P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_7_Px", locPiMinus2P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_7_Py", locPiMinus2P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("P4_7_Pz", locPiMinus2P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_E", locPiMinus2P4.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Px", locPiMinus2P4.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Py", locPiMinus2P4.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Pz", locPiMinus2P4.Pz());
 
 
         // Fill Flat Missing Energy/Momentum^2 branches

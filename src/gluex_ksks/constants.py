@@ -18,6 +18,7 @@ BKGMC_PATH = DATASETS_PATH / 'bkgmc'
 RAW_BGGEN_PATH = RAW_DATASETS_PATH / 'bggen'
 BGGEN_PATH = DATASETS_PATH / 'bggen'
 
+
 RAW_DATASET_PATH = {
     'data': RAW_DATA_PATH,
     'sigmc': RAW_SIGMC_PATH,
@@ -60,6 +61,17 @@ TRUE_POL_ANGLES = {
 }
 
 
+def mkdirs_raw() -> None:
+    for raw_path in {RAW_DATA_PATH, RAW_SIGMC_PATH, RAW_BKGMC_PATH}:
+        (raw_path / 'logs').mkdir(parents=True, exist_ok=True)
+        (raw_path / 's17').mkdir(parents=True, exist_ok=True)
+        (raw_path / 's18').mkdir(parents=True, exist_ok=True)
+        (raw_path / 'f18').mkdir(parents=True, exist_ok=True)
+        (raw_path / 's20').mkdir(parents=True, exist_ok=True)
+    (RAW_BGGEN_PATH / 'logs').mkdir(parents=True, exist_ok=True)
+    (RAW_BGGEN_PATH / 's18').mkdir(parents=True, exist_ok=True)
+
+
 def mkdirs():
     ANALYSIS_PATH.mkdir(parents=True, exist_ok=True)
     LOG_PATH.mkdir(parents=True, exist_ok=True)
@@ -77,6 +89,7 @@ def mkdirs():
     PLOTS_PATH.mkdir(parents=True, exist_ok=True)
     REPORTS_PATH.mkdir(parents=True, exist_ok=True)
     MISC_PATH.mkdir(parents=True, exist_ok=True)
+    mkdirs_raw()
 
 
 RED = '#e41a1c'
@@ -118,11 +131,13 @@ PROTONZ_BINS = 50
 
 RFL_RANGE = (0.0, 0.2)
 RFL_BINS = 100
+RFL_FIT_RANGE = (0.0, 2.0)
+RFL_FIT_BINS = 2000
 
 MM2_RANGE = (-0.1, 0.1)
 MM2_BINS = 100
 
-ME_RANGE = (-0.1, 0.1)
+ME_RANGE = (-1.0, 1.0)
 ME_BINS = 100
 
 YOUDENJ_RANGE = (0.0, 10.0)

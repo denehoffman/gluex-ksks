@@ -277,7 +277,6 @@ def run_analysis(
 ):
     scratch_dir = Path.cwd() / 'tmp'
     scratch_dir.mkdir(parents=True, exist_ok=True)
-    mkdirs()
     run_slurm_script(
         generate_slurm_job(
             output_name,
@@ -326,6 +325,7 @@ def run_on_slurm(
     help='slurm queue to use',
 )
 def cli(queue):
+    mkdirs()
     run_on_slurm('data', queue)
     run_on_slurm('sigmc', queue)
     run_on_slurm('bkgmc', queue)

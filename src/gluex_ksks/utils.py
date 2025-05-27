@@ -3,7 +3,7 @@ from __future__ import annotations
 import pickle
 import laddu as ld
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, overload
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
 import polars as pl
@@ -12,7 +12,14 @@ from scipy.stats import chi2
 from scipy.optimize import OptimizeResult, minimize
 from uproot.behaviors.TBranch import HasBranches
 
-from gluex_ksks.constants import MISC_PATH, RFL_RANGE, RUN_RANGES, TRUE_POL_ANGLES
+from gluex_ksks.constants import (
+    MISC_PATH,
+    RFL_FIT_BINS,
+    RFL_FIT_RANGE,
+    RFL_RANGE,
+    RUN_RANGES,
+    TRUE_POL_ANGLES,
+)
 from gluex_ksks.types import FloatArray, IntArray
 
 if TYPE_CHECKING:
@@ -27,12 +34,6 @@ def root_to_dataframe(input_path: Path, tree: str = 'kin') -> pl.DataFrame:
     )
     assert isinstance(tt, HasBranches)  # noqa: S101
     root_data = tt.arrays(library='np')
-    keys = list(root_data.keys())
-    for key in keys:
-        if key.startswith('P4_'):
-            root_data[key.replace('P4_', 'p4_')] = root_data.pop(key)
-        if key.startswith('Weight'):
-            root_data[key.replace('Weight', 'weight')] = root_data.pop(key)
     return pl.from_dict(root_data)
 
 
@@ -80,7 +81,7 @@ class CCDBData:
         *,
         is_mc: bool,
     ) -> float:
-        relative_beam_bucket = int(np.floor(rf / 4.008016032) + 0.5)
+        relative_beam_bucket = int(np.floor(rf / 4.008016032 + 0.5))
         if abs(relative_beam_bucket) == 1:
             return 0.0
         if abs(relative_beam_bucket) == 0:
@@ -93,7 +94,7 @@ class CCDBData:
                 beam_energy,
             )
         )
-        return weight * (-scale / 8.0)
+        return weight * (-scale / 6.0)  # (4 - 1) * 2 out-of-time peaks
 
 
 @dataclass
@@ -257,12 +258,13 @@ class SPlotArrays:
     control: FloatArray
 
     @staticmethod
-    def from_polars(data: pl.DataFrame, *, control: str) -> SPlotArrays:
+    def from_polars(data: pl.LazyFrame, *, control: str) -> SPlotArrays:
+        data_df = data.select('RFL1', 'RFL2', 'weight', control).collect()
         return SPlotArrays(
-            rfl1=data['RFL1'].to_numpy(),
-            rfl2=data['RFL2'].to_numpy(),
-            weight=data['weight'].to_numpy(),
-            control=data[control].to_numpy(),
+            rfl1=data_df['RFL1'].to_numpy(),
+            rfl2=data_df['RFL2'].to_numpy(),
+            weight=data_df['weight'].to_numpy(),
+            control=data_df[control].to_numpy(),
         )
 
     def __len__(self) -> int:
@@ -327,13 +329,12 @@ class SigMCFitComponents:
 def get_sigmc_fit_components(
     *,
     arrays: SPlotArrays,
-    nbins: int,
 ) -> SigMCFitComponents:
     hist1 = Histogram(
         *np.histogram(
             arrays.rfl1,
-            bins=nbins,
-            range=RFL_RANGE,
+            bins=RFL_FIT_BINS,
+            range=RFL_FIT_RANGE,
             weights=arrays.weight,
             density=True,
         )
@@ -341,8 +342,8 @@ def get_sigmc_fit_components(
     hist2 = Histogram(
         *np.histogram(
             arrays.rfl2,
-            bins=nbins,
-            range=RFL_RANGE,
+            bins=RFL_FIT_BINS,
+            range=RFL_FIT_RANGE,
             weights=arrays.weight,
             density=True,
         )
@@ -376,7 +377,7 @@ class FactorizationResult:
 
     @property
     def likelihood_ratio(self):
-        return self.h0.aic - sum([h1.aic for h1 in self.h1s])
+        return self.h0.n2ll - sum([h1.n2ll for h1 in self.h1s])
 
     @property
     def p(self) -> float:
@@ -427,15 +428,7 @@ class SPlotFitResult:
         ]
 
 
-@overload
-def add_m_meson(data: pl.DataFrame) -> pl.DataFrame: ...
-
-
-@overload
-def add_m_meson(data: pl.LazyFrame) -> pl.LazyFrame: ...
-
-
-def add_m_meson(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFrame:
+def add_m_meson(data: pl.LazyFrame) -> pl.LazyFrame:
     def process(struct) -> float:
         ks1_px = struct['p4_2_Px']
         ks1_py = struct['p4_2_Py']
@@ -467,15 +460,7 @@ def add_m_meson(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFram
     )
 
 
-@overload
-def add_ksb_costheta(data: pl.DataFrame) -> pl.DataFrame: ...
-
-
-@overload
-def add_ksb_costheta(data: pl.LazyFrame) -> pl.LazyFrame: ...
-
-
-def add_ksb_costheta(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFrame:
+def add_ksb_costheta(data: pl.LazyFrame) -> pl.LazyFrame:
     def process(struct) -> float:
         p_px = struct['p4_1_Px']
         p_py = struct['p4_1_Py']
@@ -520,15 +505,7 @@ def add_ksb_costheta(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.Laz
     )
 
 
-@overload
-def add_m_baryon(data: pl.DataFrame) -> pl.DataFrame: ...
-
-
-@overload
-def add_m_baryon(data: pl.LazyFrame) -> pl.LazyFrame: ...
-
-
-def add_m_baryon(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFrame:
+def add_m_baryon(data: pl.LazyFrame) -> pl.LazyFrame:
     def process(struct) -> float:
         p_px = struct['p4_1_Px']
         p_py = struct['p4_1_Py']
@@ -574,15 +551,7 @@ def add_m_baryon(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFra
     )
 
 
-@overload
-def add_hx_angles(data: pl.DataFrame) -> pl.DataFrame: ...
-
-
-@overload
-def add_hx_angles(data: pl.LazyFrame) -> pl.LazyFrame: ...
-
-
-def add_hx_angles(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFrame:
+def add_hx_angles(data: pl.LazyFrame) -> pl.LazyFrame:
     def process(struct) -> dict[str, float]:
         beam_px = struct['p4_0_Px']
         beam_py = struct['p4_0_Py']
@@ -622,6 +591,10 @@ def add_hx_angles(data: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFr
 
     return data.with_columns(
         pl.struct(
+            'p4_0_Px',
+            'p4_0_Py',
+            'p4_0_Pz',
+            'p4_0_E',
             'p4_1_Px',
             'p4_1_Py',
             'p4_1_Pz',
