@@ -1,6 +1,6 @@
-#include "DSelector_phase_1.h"
+#include "DSelector_bggen.h"
 
-void DSelector_phase_1::Init(TTree *locTree) {
+void DSelector_bggen::Init(TTree *locTree) {
 
     dFlatTreeFileName = "flat.root";
     dFlatTreeName = "kin";
@@ -156,9 +156,11 @@ void DSelector_phase_1::Init(TTree *locTree) {
     dFlatTreeInterface->Create_Branch_NoSplitTObject<TObjString>("Topology");
 }
 
-Bool_t DSelector_phase_1::Process(Long64_t locEntry) {
+Bool_t DSelector_bggen::Process(Long64_t locEntry) {
 
     DSelector::Process(locEntry);
+
+    UInt_t locRunNumber = Get_RunNumber();
 
     Reset_Actions_NewEvent();
 
@@ -580,6 +582,6 @@ Bool_t DSelector_phase_1::Process(Long64_t locEntry) {
     return kTRUE;
 }
 
-void DSelector_phase_1::Finalize(void) {
+void DSelector_bggen::Finalize(void) {
     DSelector::Finalize();
 }

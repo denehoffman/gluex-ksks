@@ -1,5 +1,5 @@
-#ifndef DSelector_phase_1_h
-#define DSelector_phase_1_h
+#ifndef DSelector_bggen_h
+#define DSelector_bggen_h
 
 #include <iostream>
 
@@ -10,12 +10,12 @@
 #include "TH1D.h"
 #include "TH2D.h"
 
-class DSelector_phase_1 : public DSelector {
+class DSelector_bggen : public DSelector {
 
     public:
 
-        DSelector_phase_1(TTree* locTree = NULL) : DSelector(locTree){}
-        virtual ~DSelector_phase_1(){}
+        DSelector_bggen(TTree* locTree = NULL) : DSelector(locTree){}
+        virtual ~DSelector_bggen(){}
 
         void Init(TTree *tree);
         Bool_t Process(Long64_t entry);
@@ -44,10 +44,10 @@ class DSelector_phase_1 : public DSelector {
         DChargedTrackHypothesis* dPiMinus2Wrapper;
         DChargedTrackHypothesis* dPiPlus2Wrapper;
 
-    ClassDef(DSelector_phase_1, 0);
+    ClassDef(DSelector_bggen, 0);
 };
 
-void DSelector_phase_1::Get_ComboWrappers(void) {
+void DSelector_bggen::Get_ComboWrappers(void) {
     // Step 0
     dStep0Wrapper = dComboWrapper->Get_ParticleComboStep(0);
     dComboBeamWrapper = static_cast<DBeamParticle*>(dStep0Wrapper->Get_InitialParticle());
@@ -67,4 +67,4 @@ void DSelector_phase_1::Get_ComboWrappers(void) {
 
 }
 
-#endif // DSelector_phase_1_h
+#endif // DSelector_bggen_h

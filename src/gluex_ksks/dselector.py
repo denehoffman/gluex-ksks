@@ -249,7 +249,7 @@ bggen_analysis_sets = [
         'dselector_c_path': Path.cwd()
         / 'analysis'
         / 'dselectors'
-        / ('DSelector_phase_1.C' if output_name != 's20' else 'DSelector_phase_2.C'),
+        / 'DSelector_bggen.C',
         'tree_name': 'ksks__B4_Tree',
     }
     for output_name, input_dir in [
@@ -295,8 +295,8 @@ def run_analysis(
 
 
 def run_on_slurm(
-    data_type: Literal['data', 'sigmc', 'bkgmc', 'bggen'],
-    queue_name: Literal['blue', 'green'],
+    data_type: Literal['data', 'sigmc', 'bkgmc', 'bggen'] | str,
+    queue_name: Literal['blue', 'green'] | str,
 ):
     if data_type == 'data':
         analysis_sets = data_analysis_sets
@@ -324,9 +324,14 @@ def run_on_slurm(
     show_default=True,
     help='slurm queue to use',
 )
-def cli(queue):
+@click.option(
+    '--only',
+    type=click.Choice(['data', 'sigmc', 'bkgmc', 'bggen'], case_sensitive=False),
+    multiple=True,
+    help='Only run the specified dataset(s)',
+)
+def cli(queue, only):
     mkdirs()
-    run_on_slurm('data', queue)
-    run_on_slurm('sigmc', queue)
-    run_on_slurm('bkgmc', queue)
-    run_on_slurm('bggen', queue)
+    targets = ['data', 'sigmc', 'bkgmc', 'bggen'] if not only else list(only)
+    for target in targets:
+        run_on_slurm(target, queue)
