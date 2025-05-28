@@ -3,10 +3,14 @@ import pickle
 from typing import override
 from modak import Task
 from scipy.optimize import minimize, OptimizeResult
+import matplotlib.pyplot as plt
 
 from gluex_ksks.constants import (
+    BLACK,
+    BLUE,
     FITS_PATH,
     LOG_PATH,
+    PLOTS_PATH,
     REPORTS_PATH,
     RUN_PERIODS,
 )
@@ -25,6 +29,7 @@ from gluex_ksks.utils import (
     get_quantile_indices,
     get_sigmc_fit_components,
     select_mesons_tag,
+    to_latex,
 )
 import polars as pl
 
@@ -164,7 +169,9 @@ class FactorizationFit(Task):
         self.tag = select_mesons_tag(select_mesons)
         outputs = [
             FITS_PATH
-            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.pkl'
+            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.pkl',
+            PLOTS_PATH
+            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.svg',
         ]
         super().__init__(
             name=f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}',
@@ -227,6 +234,27 @@ class FactorizationFit(Task):
             logger=self.logger,
         )
         pickle.dump(fit_result, self.outputs[0].open('wb'))
+        quantile_edges = get_quantile_edges(
+            arrays_data.control, bins=self.nspec, weights=arrays_data.weight
+        )
+        quantile_centers = (quantile_edges[1:] + quantile_edges[:-1]) / 2
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.vlines(
+            quantile_edges, 0, 1, transform=ax.get_xaxis_transform(), colors=BLACK
+        )
+        for quantile_center, quantile_fit in zip(quantile_centers, fit_result.h1s):
+            ax.errorbar(
+                quantile_center,
+                quantile_fit.values[1],
+                yerr=quantile_fit.errors[1],
+                fmt='.',
+                color=BLUE,
+            )
+        ax.set_xlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
+        ax.set_ylabel(r'$\lambda_B$ (ns${}^{-1}$)')
+        plt.savefig(self.outputs[1])
+        plt.close()
 
 
 class FactorizationReport(Task):
@@ -247,7 +275,7 @@ class FactorizationReport(Task):
                 select_mesons=select_mesons,
                 nspec=nspec,
             )
-            for nspec in range(1, max_nspec + 1)
+            for nspec in range(2, max_nspec + 1)
         ]
         self.tag = select_mesons_tag(select_mesons)
         outputs = [
@@ -274,11 +302,11 @@ class FactorizationReport(Task):
             output_str += (
                 '\n'
                 + '    ' * 3
-                + f' {i + 1} & {factorization_fit.likelihood_ratio} & {factorization_fit.p} \\\\'
+                + f' {i + 2} & {to_latex(factorization_fit.likelihood_ratio)} & {to_latex(factorization_fit.p)} \\\\'
             )
-        output_str += r"""\bottomrule\n
+        output_str += r"""\bottomrule
         \end{tablular}
-        \caption{The results of the significance test (probability of accepting the null hypothesis, that the rest-frame lifetime is statistically independent of the invariant mass of $K_S^0K_S^0$) described in \Cref{eq:independence_test} for all data after the standard fiducial cuts given in \Cref{tab:fiducial-cuts}.}
+        \caption{The results of the significance test (probability of accepting the null hypothesis, that the rest-frame lifetime is statistically independent of the invariant mass of $K_S^0K_S^0$) described in \Cref{eq:independence_test} for all data after the standard fiducial cuts given in \Cref{tab:fiducial-cuts}.}\label{tab:independence-test}
     \end{center}
 \end{table}"""
         self.outputs[0].write_text(output_str)

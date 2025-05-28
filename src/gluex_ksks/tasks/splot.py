@@ -1,11 +1,24 @@
 import itertools
 from typing import Literal, override
+import matplotlib.pyplot as plt
 
 import pickle
 import polars as pl
 from modak import Task
 from scipy.optimize import minimize
-from gluex_ksks.constants import FITS_PATH, LOG_PATH, RUN_PERIODS
+from gluex_ksks.constants import (
+    BLUE,
+    FITS_PATH,
+    GREEN,
+    LOG_PATH,
+    PLOTS_PATH,
+    PURPLE,
+    RED,
+    REPORTS_PATH,
+    RFL_BINS,
+    RFL_RANGE,
+    RUN_PERIODS,
+)
 from gluex_ksks.tasks.cuts import FiducialCuts
 from gluex_ksks.types import FloatArray
 from gluex_ksks.utils import (
@@ -14,10 +27,12 @@ from gluex_ksks.utils import (
     SPlotFitResult,
     add_m_meson,
     exp_pdf,
+    exp_pdf_single,
     get_bkgmc_lda0s_list,
     get_quantile_edges,
     get_sigmc_fit_components,
     select_mesons_tag,
+    to_latex,
 )
 import numpy as np
 
@@ -129,8 +144,19 @@ def run_splot_fit(
     v: FloatArray = np.linalg.inv(v_inv)
     logger.info(f'v =\n{v}')
     logger.info(f'λs = {ldas}')
+    weighted_total = np.sum(
+        np.sum(
+            [arrays_data.weight * v[0, j] * pdfs[j] for j in range(nspec + 1)], axis=0
+        )
+        / denom
+    )
     return SPlotFitResult(
-        sigmc_fit_components, yields, ldas, FitResult.from_opt(opt, len(arrays_data)), v
+        sigmc_fit_components,
+        yields,
+        ldas,
+        FitResult.from_opt(opt, len(arrays_data)),
+        v,
+        weighted_total,
     )
 
 
@@ -142,7 +168,7 @@ class SPlotFit(Task):
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
-        method: Literal['fixed', 'free'],
+        method: Literal['fixed', 'free'] | str,
         nspec: int,
     ):
         self.protonz_cut = protonz_cut
@@ -190,10 +216,14 @@ class SPlotFit(Task):
         self.tag = select_mesons_tag(self.select_mesons)
         outputs = [
             FITS_PATH
-            / f'splot_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}.pkl'
+            / f'splot_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.method}_{self.nspec}.pkl',
+            REPORTS_PATH
+            / f'splot_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.method}_{self.nspec}.tex',
+            PLOTS_PATH
+            / f'splot_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.method}_{self.nspec}.svg',
         ]
         super().__init__(
-            name=f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_{self.method}_{self.nspec}',
+            name=f'splot_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.method}_{self.nspec}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -255,6 +285,169 @@ class SPlotFit(Task):
         )
         pickle.dump(fit_result, self.outputs[0].open('wb'))
 
+        if self.fixed:
+            par_names = ['s'] + [f'b{i + 1}' for i in range(self.nspec)]
+        else:
+            par_names = ['s'] + list(
+                itertools.chain(
+                    *zip(
+                        [f'b{i + 1}' for i in range(self.nspec)],
+                        [f'l{i + 1}' for i in range(self.nspec)],
+                    )
+                )
+            )
+        output_str = r"""
+\begin{table}
+    \begin{center}
+        \begin{tabular}{lr}\toprule
+            Parameter & Value \\\midrule"""
+        for par_name, value, error in zip(
+            par_names,
+            fit_result.total_fit.values,
+            fit_result.total_fit.errors,
+        ):
+            if par_name.startswith('s'):
+                normalized_name = 'Signal Yield'
+            elif par_name.startswith('b'):
+                normalized_name = rf'Background Yield $\#{par_name[1:]}$'
+            else:
+                normalized_name = rf'Background $\lambda$ $\#{par_name[1:]}$'
+            output_str += f"""
+            {normalized_name} & {to_latex(value, error)} \\\\"""
+        output_str += rf"""\bottomrule
+        \end{{tabular}}
+        \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {self.nspec} {self.method} background slope(s). Uncertainties are calculated using the covariance matrix of the fit. All $\lambda$ parameters have units of $\si{{\nano\second}}^{{-1}}$.}}
+    \end{{center}}
+\end{{table}}
+% {fit_result.weighted_total} weighted events"""
+        self.outputs[1].write_text(output_str)
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.hist(
+            arrays_data.rfl1,
+            weights=arrays_data.weight,
+            bins=RFL_BINS,
+            range=RFL_RANGE,
+            histtype='step',
+            color=BLUE,
+        )
+        bin_width = (RFL_RANGE[1] - RFL_RANGE[0]) / RFL_BINS
+        rfls = np.linspace(*RFL_RANGE, 1000)
+        sigmc_fit_components = get_sigmc_fit_components(
+            arrays=arrays_sigmc,
+        )
+        sig_line = sigmc_fit_components.pdf1(rfls) * bin_width * fit_result.sig_yield
+        ax.plot(
+            rfls,
+            sig_line,
+            color=GREEN,
+            label='Signal Component',
+        )
+        bkg_lines = []
+        for i, (bkg_yield, bkg_lda) in enumerate(
+            zip(fit_result.bkg_yields, fit_result.bkg_ldas)
+        ):
+            bkg_line = exp_pdf_single(rfl=rfls, lda=bkg_lda) * bkg_yield * bin_width
+            bkg_lines.append(bkg_line)
+            ax.plot(
+                rfls,
+                bkg_line,
+                color=RED,
+                label='Background Component' if i == 0 else None,
+            )
+        total_line = sig_line + sum(bkg_lines)
+        ax.plot(
+            rfls,
+            total_line,
+            color=PURPLE,
+            label='Fit Total',
+        )
+        ax.set_xlabel(r'$K_S^0$ Rest Frame Lifetime (ns)')
+        bin_width_ps = int((RFL_RANGE[1] - RFL_RANGE[0]) / RFL_BINS * 1000)
+        ax.set_ylabel(f'Counts / {bin_width_ps} (ps)')
+        ax.set_ylim(10)
+        ax.set_yscale('log')
+        ax.legend()
+        plt.savefig(self.outputs[2])
+        plt.close()
+
+
+class SPlotReport(Task):
+    def __init__(
+        self,
+        *,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        max_nspec: int,
+    ):
+        self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
+        self.chisqdof = chisqdof
+        self.select_mesons = select_mesons
+        self.tag = 'None'
+        if self.select_mesons is not None:
+            self.tag = '_mesons' if self.select_mesons else '_baryons'
+        self.max_nspec = max_nspec
+        inputs: list[Task] = [
+            SPlotFit(
+                protonz_cut=self.protonz_cut,
+                mass_cut=self.mass_cut,
+                chisqdof=self.chisqdof,
+                select_mesons=self.select_mesons,
+                method=method,
+                nspec=nspec,
+            )
+            for method in ['free', 'fixed']
+            for nspec in range(1, self.max_nspec + 1)
+        ]
+
+        outputs = [
+            REPORTS_PATH
+            / f'splot_report{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_max_nspec_{self.max_nspec}.tex'
+        ]
+        super().__init__(
+            name=f'splot_report{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}{self.tag}_max_nspec_{self.max_nspec}',
+            inputs=inputs,
+            outputs=outputs,
+            log_directory=LOG_PATH,
+        )
+
+    @override
+    def run(self) -> None:
+        fit_results: list[SPlotFitResult] = [
+            pickle.load(inp.outputs[0].open('rb')) for inp in self.inputs
+        ]
+        min_aic = np.inf
+        min_bic = np.inf
+        for fit_result in fit_results:
+            if fit_result.aic < min_aic:
+                min_aic = fit_result.aic
+            if fit_result.bic < min_bic:
+                min_bic = fit_result.bic
+        output_str = r"""\begin{table}
+    \begin{center}
+        \begin{tabular}{ccccc}\toprule
+        Background Slope Parameters & Number of Background Components & $r\text{AIC}$ & $r\text{BIC}$\\\midrule"""
+        current_method = None
+        for (method, nspec), fit_result in zip(
+            [(m, n) for m in ['Free', 'Fixed'] for n in range(1, self.max_nspec + 1)],
+            fit_results,
+        ):
+            method_string = ''
+            if method != current_method:
+                current_method = method
+                method_string = current_method
+            output_str += f"""
+        {method_string} & {nspec} & {fit_result.aic - min_aic:.3f} & {fit_result.bic - min_bic:.3f} \\\\"""
+        output_str += r"""\bottomrule
+        \end{tablular}
+        \caption{Relative AIC and BIC values for each sPlot fitting method. ``Fixed'' and ``free'' refer to whether the background slope parameters are fixed to values obtained from background Monte Carlo or are free parameters in the fit.}\label{tab:splot-model-results}
+    \end{center}
+\end{table}"""
+        self.outputs[0].write_text(output_str)
+
 
 def get_sweights(
     fit_result: SPlotFitResult,
@@ -290,7 +483,7 @@ class SPlotWeights(Task):
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
-        method: Literal['fixed', 'free'],
+        method: Literal['fixed', 'free'] | str,
         nspec: int,
     ):
         self.run_period = run_period

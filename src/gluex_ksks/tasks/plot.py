@@ -6,22 +6,38 @@ import numpy as np
 from gluex_ksks.constants import (
     BARYON_MASS_BINS,
     BARYON_MASS_RANGE,
+    BEAM_ENERGY_BINS,
+    BEAM_ENERGY_RANGE,
+    BETA_BINS,
+    BETA_RANGE,
     BLACK,
     BLUE,
     CHISQDOF_BINS,
     CHISQDOF_RANGE,
     COSTHETA_BINS,
     COSTHETA_RANGE,
+    DEDX_BINS,
+    DEDX_RANGE,
+    DELTA_T_BINS,
+    DELTA_T_RANGE,
+    DETECTOR_THETA_DEG_BINS,
+    DETECTOR_THETA_DEG_RANGE,
+    E_OVER_P_BINS,
+    E_OVER_P_RANGE,
     GREEN,
     LOG_PATH,
     ME_BINS,
     ME_RANGE,
+    MESON_MASS_2D_BINS,
     MESON_MASS_BINS,
     MESON_MASS_RANGE,
     MESON_PARTICLES,
     MM2_BINS,
     MM2_RANGE,
     ORANGE,
+    P_BINS,
+    P_RANGE,
+    PARTICLE_TO_LATEX,
     PHI_BINS,
     PHI_RANGE,
     PLOTS_PATH,
@@ -41,6 +57,7 @@ from gluex_ksks.tasks.cuts import FiducialCuts
 import polars as pl
 from gluex_ksks.tasks.splot import SPlotWeights
 from gluex_ksks.utils import (
+    add_alt_hypos,
     add_hx_angles,
     add_ksb_costheta,
     add_m_baryon,
@@ -107,6 +124,98 @@ class PlotTask(Task):
         outputs = [
             PLOTS_PATH
             / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.svg'
+            for name in output_names
+        ]
+        task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
+        self.short_name = name
+        super().__init__(
+            name=task_name,
+            inputs=inputs,
+            outputs=outputs,
+            log_directory=LOG_PATH,
+            **kwargs,
+        )
+
+    def read_inputs(self) -> pl.LazyFrame:
+        return pl.concat(
+            [
+                pl.scan_parquet(inp.outputs[0], low_memory=True)
+                for inp in self.inputs[: len(RUN_PERIODS)]
+            ],
+            how='diagonal',
+            rechunk=True,
+        )
+
+    def log_plot_start(
+        self,
+    ) -> None:
+        self.logger.info(
+            f'Plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+        )
+
+    def log_plot_end(self) -> None:
+        self.logger.info(
+            f'Finished plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+        )
+
+
+class DetectorPlotTask(Task):
+    def __init__(
+        self,
+        name: str,
+        output_names: str | list[str],
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+        **kwargs,
+    ):
+        self.data_type = data_type
+        self.protonz_cut = protonz_cut
+        self.mass_cut = mass_cut
+        self.chisqdof = chisqdof
+        self.select_mesons = select_mesons
+        self.method = method
+        self.nspec = nspec
+        if method is None or nspec is None:
+            inputs: list[Task] = [
+                FiducialCuts(
+                    data_type=data_type,
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                )
+                for run_period in RUN_PERIODS
+            ]
+        elif data_type == 'data':
+            assert method is not None
+            assert nspec is not None
+            inputs = [
+                SPlotWeights(
+                    run_period=run_period,
+                    protonz_cut=protonz_cut,
+                    mass_cut=mass_cut,
+                    chisqdof=chisqdof,
+                    select_mesons=select_mesons,
+                    method=method,
+                    nspec=nspec,
+                )
+                for run_period in RUN_PERIODS
+            ]
+        else:
+            raise ValueError('Unsupported data type + cut combination')
+        self.tag = select_mesons_tag(select_mesons)
+        if isinstance(output_names, str):
+            output_names = [output_names]
+        outputs = [
+            PLOTS_PATH
+            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.png'
             for name in output_names
         ]
         task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
@@ -521,7 +630,7 @@ class PlotAngles(PlotTask):
         ax.hist2d(
             df_data['m_meson'],
             df_data['hx_costheta'],
-            bins=(MESON_MASS_BINS, COSTHETA_BINS),
+            bins=(MESON_MASS_2D_BINS, COSTHETA_BINS),
             range=(MESON_MASS_RANGE, COSTHETA_RANGE),
             weights=df_data['weight'],
         )
@@ -534,7 +643,7 @@ class PlotAngles(PlotTask):
         ax.hist2d(
             df_data['m_meson'],
             df_data['hx_phi'],
-            bins=(MESON_MASS_BINS, PHI_BINS),
+            bins=(MESON_MASS_2D_BINS, PHI_BINS),
             range=(MESON_MASS_RANGE, PHI_RANGE),
             weights=df_data['weight'],
         )
@@ -740,6 +849,7 @@ class PlotChiSqDOFCombined(CombinedPlotTask):
         ax.set_xlabel(r'$\chi^2_{\nu}$')
         bin_width = round((CHISQDOF_RANGE[1] - CHISQDOF_RANGE[0]) / CHISQDOF_BINS, 1)
         ax.set_ylabel(f'Normalized Counts / {bin_width}')
+        ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()
         self.log_plot_end()
@@ -1166,6 +1276,535 @@ class PlotMECombined(CombinedPlotTask):
         self.log_plot_end()
 
 
+class PlotBeamEnergy(PlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+    ):
+        super().__init__(
+            'beam_energy',
+            'beam_energy',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        df_data = self.read_inputs().select('p4_0_E', 'weight').collect()
+        counts, edges = np.histogram(
+            df_data['p4_0_E'],
+            bins=BEAM_ENERGY_BINS,
+            range=BEAM_ENERGY_RANGE,
+            weights=df_data['weight'],
+        )
+        weights_squared, _ = np.histogram(
+            df_data['p4_0_E'],
+            bins=BEAM_ENERGY_BINS,
+            range=BEAM_ENERGY_RANGE,
+            weights=df_data['weight'].pow(2),
+        )
+        bin_centers = (edges[:-1] + edges[1:]) / 2
+        errors = np.sqrt(weights_squared)
+
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.stairs(counts, edges, color=BLUE)
+        ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
+        ax.set_ylim(0)
+        ax.set_xlabel('Beam Energy (GeV)')
+        bin_width = int(
+            (BEAM_ENERGY_RANGE[1] - BEAM_ENERGY_RANGE[0]) / BEAM_ENERGY_BINS * 1000
+        )
+        ax.set_ylabel(f'Counts / {bin_width} (MeV)')
+        plt.savefig(self.outputs[0])
+        plt.close()
+        self.log_plot_end()
+
+
+class PlotAltHypos(PlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+    ):
+        super().__init__(
+            'alt_hypos',
+            [
+                'hypo_ks12',
+                'hypo_ks21',
+                'hypo_deltaplusplus1',
+                'hypo_deltaplusplus2',
+                'hypo_lambda1',
+                'hypo_lambda2',
+                'hypo_deltaplus11',
+                'hypo_deltaplus12',
+                'hypo_deltaplus21',
+                'hypo_deltaplus22',
+                'hypo_deltaminus',
+                'hypo_ks12_v_ks21',
+            ],
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        df_data = (
+            add_alt_hypos(self.read_inputs())
+            .select(
+                'piplus1_piminus2_m',
+                'piplus2_piminus1_m',
+                'p_piplus1_m',
+                'p_piplus2_m',
+                'p_piminus1_m',
+                'p_piminus2_m',
+                'p_piplus1_piminus1_m',
+                'p_piplus1_piminus2_m',
+                'p_piplus2_piminus1_m',
+                'p_piplus2_piminus2_m',
+                'p_piminus1_piminus2_m',
+                'weight',
+            )
+            .collect()
+        )
+        self.logger.info('Read data, plotting...')
+        column_names = [
+            'piplus1_piminus2_m',
+            'piplus2_piminus1_m',
+            'p_piplus1_m',
+            'p_piplus2_m',
+            'p_piminus1_m',
+            'p_piminus2_m',
+            'p_piplus1_piminus1_m',
+            'p_piplus1_piminus2_m',
+            'p_piplus2_piminus1_m',
+            'p_piplus2_piminus2_m',
+            'p_piminus1_piminus2_m',
+        ]
+        latex_particles_strings = [
+            r'\pi^+_1\pi^-_2',
+            r'\pi^+_2\pi^-_1',
+            r'p \pi^+_1',
+            r'p \pi^+_2',
+            r'p \pi^-_1',
+            r'p \pi^-_2',
+            r'p \pi^+_1 \pi^-_1',
+            r'p \pi^+_1 \pi^-_2',
+            r'p \pi^+_2 \pi^-_1',
+            r'p \pi^+_2 \pi^-_2',
+            r'p \pi^-_1 \pi^-_2',
+        ]
+        ranges = [
+            (0.25, 1.7),
+            (0.25, 1.7),
+            (1.0, 3.3),
+            (1.0, 3.3),
+            (1.0, 3.3),
+            (1.0, 3.3),
+            (1.3, 5.0),
+            (1.3, 5.0),
+            (1.3, 5.0),
+            (1.3, 5.0),
+            (1.3, 5.0),
+        ]
+        binnings = [200] * len(column_names)
+        for i, (column_name, latex_particles_string, bins, range_) in enumerate(
+            zip(column_names, latex_particles_strings, binnings, ranges)
+        ):
+            self.logger.info(f'Plotting {column_name}')
+            counts, edges = np.histogram(
+                df_data[column_name],
+                bins=bins,
+                range=range_,
+                weights=df_data['weight'],
+            )
+            weights_squared, _ = np.histogram(
+                df_data[column_name],
+                bins=bins,
+                range=range_,
+                weights=df_data['weight'].pow(2),
+            )
+            bin_centers = (edges[:-1] + edges[1:]) / 2
+            errors = np.sqrt(weights_squared)
+
+            plt.style.use('gluex_ksks.thesis')
+            _, ax = plt.subplots()
+            ax.stairs(counts, edges, color=BLUE)
+            ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
+            ax.set_ylim(0)
+            ax.set_xlabel(f'Invariant Mass of ${latex_particles_string}$ (GeV/$c^2$)')
+            bin_width = int((range_[1] - range_[0]) / bins * 1000)
+            ax.set_ylabel(f'Counts / {bin_width} (MeV)')
+            plt.savefig(self.outputs[i])
+            plt.close()
+        self.logger.info('Plotting 2d pi+pi- correlation')
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        range_ = (0.25, 1.7)
+        bins = 200
+        ax.hist2d(
+            df_data['piplus1_piminus2_m'],
+            df_data['piplus2_piminus1_m'],
+            bins=(bins, bins),
+            range=(range_, range_),
+            weights=df_data['weight'],
+        )
+        ax.set_xlabel(r'Invariant Mass of $\pi^+_1\pi^-_2$ (GeV/$c^2$)')
+        ax.set_ylabel(r'Invariant Mass of $\pi^+_2\pi^-_1$ (GeV/$c^2$)')
+        plt.savefig(self.outputs[-1])
+        plt.close()
+        self.log_plot_end()
+
+
+class PlotDeltaTVP(DetectorPlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+        particle: Literal['Proton', 'PiPlus1', 'PiMinus1', 'PiPlus2', 'PiMinus2'] | str,
+        detector: Literal['BCAL', 'TOF', 'FCAL'] | str,
+    ):
+        self.particle = particle
+        self.detector = detector
+        super().__init__(
+            f'delta_t_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            f'delta_t_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        delta_t_column = f'{self.particle}_DeltaT_{self.detector}'
+        p_column = f'{self.particle}_P'
+        df_data = (
+            self.read_inputs()
+            .select(delta_t_column, p_column, 'weight')
+            .filter(pl.col(delta_t_column).ne(0.0))
+            .collect()
+        )
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.hist2d(
+            df_data[p_column],
+            df_data[delta_t_column],
+            weights=df_data['weight'],
+            bins=(P_BINS, DELTA_T_BINS),
+            range=(P_RANGE, DELTA_T_RANGE),
+        )
+        ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
+        ax.set_ylabel(rf'{self.detector} $\Delta t$ (ns)')
+        plt.savefig(self.outputs[0])
+        plt.close()
+        self.log_plot_end()
+
+
+class PlotBetaVP(DetectorPlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+        particle: Literal['Proton', 'PiPlus1', 'PiMinus1', 'PiPlus2', 'PiMinus2'] | str,
+        detector: Literal['BCAL', 'TOF', 'FCAL'] | str,
+    ):
+        self.particle = particle
+        self.detector = detector
+        super().__init__(
+            f'beta_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            f'beta_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        beta_column = f'{self.particle}_Beta_{self.detector}'
+        p_column = f'{self.particle}_P'
+        df_data = (
+            self.read_inputs()
+            .select(beta_column, p_column, 'weight')
+            .filter(pl.col(beta_column).ne(0.0))
+            .collect()
+        )
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.hist2d(
+            df_data[p_column],
+            df_data[beta_column],
+            weights=df_data['weight'],
+            bins=(P_BINS, BETA_BINS),
+            range=(P_RANGE, BETA_RANGE),
+        )
+        ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
+        ax.set_ylabel(rf'{self.detector} $\beta$')
+        plt.savefig(self.outputs[0])
+        plt.close()
+        self.log_plot_end()
+
+
+class PlotDEDXVP(DetectorPlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+        particle: Literal['Proton', 'PiPlus1', 'PiMinus1', 'PiPlus2', 'PiMinus2'] | str,
+        detector: Literal['CDC', 'CDC_integral', 'FDC', 'ST', 'TOF'] | str,
+    ):
+        self.particle = particle
+        self.detector = detector
+        super().__init__(
+            f'dedx_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            f'dedx_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        dedx_column = f'{self.particle}_dEdx_{self.detector}'
+        p_column = f'{self.particle}_P'
+        df_data = (
+            self.read_inputs()
+            .select(dedx_column, p_column, 'weight')
+            .filter(pl.col(dedx_column).ne(0.0))
+            .collect()
+        )
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.hist2d(
+            df_data[p_column],
+            df_data[dedx_column],
+            weights=df_data['weight'],
+            bins=(P_BINS, DEDX_BINS),
+            range=(P_RANGE, DEDX_RANGE),
+        )
+        ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
+        ax.set_ylabel(rf'{self.detector} $\mathrm{{d}}E/\mathrm{{d}}x$ (keV/cm)')
+        plt.savefig(self.outputs[0])
+        plt.close()
+        self.log_plot_end()
+
+
+class PlotEoverPVPandTheta(DetectorPlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+        particle: Literal['Proton', 'PiPlus1', 'PiMinus1', 'PiPlus2', 'PiMinus2'] | str,
+        detector: Literal['BCAL', 'FCAL'] | str,
+    ):
+        self.particle = particle
+        self.detector = detector
+        super().__init__(
+            f'e_over_p_v_p_and_theta_{str(detector).lower()}_{str(particle).lower()}',
+            [
+                f'e_over_p_v_p_{str(detector).lower()}_{str(particle).lower()}',
+                f'e_over_p_v_theta_{str(detector).lower()}_{str(particle).lower()}',
+            ],
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        e_column = f'{self.particle}_E_{self.detector}'
+        p_column = f'{self.particle}_P'
+        theta_column = f'{self.particle}_Theta'
+        df_data = (
+            self.read_inputs()
+            .select(e_column, p_column, theta_column, 'weight')
+            .filter(pl.col(e_column).ne(0.0))
+            .collect()
+        )
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.hist2d(
+            df_data[p_column],
+            df_data[e_column] / df_data[p_column],
+            weights=df_data['weight'],
+            bins=(P_BINS, E_OVER_P_BINS),
+            range=(P_RANGE, E_OVER_P_RANGE),
+        )
+        ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
+        ax.set_ylabel(rf'{self.detector} $E/p$')
+        plt.savefig(self.outputs[0])
+        plt.close()
+
+        _, ax = plt.subplots()
+        ax.hist2d(
+            df_data[theta_column] * 180 / np.pi,
+            df_data[e_column] / df_data[p_column],
+            weights=df_data['weight'],
+            bins=(DETECTOR_THETA_DEG_BINS[self.detector], E_OVER_P_BINS),
+            range=(DETECTOR_THETA_DEG_RANGE[self.detector], E_OVER_P_RANGE),
+        )
+        ax.set_xlabel(rf'${PARTICLE_TO_LATEX[self.particle]}$ $\theta$ (deg)')
+        ax.set_ylabel(rf'{self.detector} $E/p$')
+        plt.savefig(self.outputs[1])
+        plt.close()
+        self.log_plot_end()
+
+
+class PlotDetectors(Task):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+    ):
+        single_plot_kwargs = {
+            'data_type': data_type,
+            'protonz_cut': protonz_cut,
+            'mass_cut': mass_cut,
+            'chisqdof': chisqdof,
+            'select_mesons': select_mesons,
+            'method': method,
+            'nspec': nspec,
+        }
+        tag = select_mesons_tag(select_mesons)
+        super().__init__(
+            name=f'plot_detectors_{data_type}{"_pz" if protonz_cut else ""}{"masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}',
+            inputs=[
+                *[
+                    PlotDeltaTVP(
+                        **single_plot_kwargs, particle=particle, detector=detector
+                    )
+                    for particle in [
+                        'Proton',
+                        'PiPlus1',
+                        'PiMinus1',
+                        'PiPlus2',
+                        'PiMinus2',
+                    ]
+                    for detector in ['BCAL', 'TOF', 'FCAL']
+                ],
+                *[
+                    PlotBetaVP(
+                        **single_plot_kwargs, particle=particle, detector=detector
+                    )
+                    for particle in [
+                        'Proton',
+                        'PiPlus1',
+                        'PiMinus1',
+                        'PiPlus2',
+                        'PiMinus2',
+                    ]
+                    for detector in ['BCAL', 'TOF', 'FCAL']
+                ],
+                *[
+                    PlotDEDXVP(
+                        **single_plot_kwargs, particle=particle, detector=detector
+                    )
+                    for particle in [
+                        'Proton',
+                        'PiPlus1',
+                        'PiMinus1',
+                        'PiPlus2',
+                        'PiMinus2',
+                    ]
+                    for detector in ['CDC', 'CDC_integral', 'FDC', 'ST', 'TOF']
+                ],
+                *[
+                    PlotEoverPVPandTheta(
+                        **single_plot_kwargs, particle=particle, detector=detector
+                    )
+                    for particle in [
+                        'Proton',
+                        'PiPlus1',
+                        'PiMinus1',
+                        'PiPlus2',
+                        'PiMinus2',
+                    ]
+                    for detector in ['BCAL', 'FCAL']
+                ],
+            ],
+            outputs=[],
+            log_directory=LOG_PATH,
+        )
+
+    @override
+    def run(self) -> None:
+        pass
+
+
 class PlotAll(Task):
     def __init__(
         self,
@@ -1209,6 +1848,7 @@ class PlotAll(Task):
                 PlotMM2Combined(**combined_plot_kwargs),
                 PlotMECombined(**combined_plot_kwargs),
                 PlotRF(**single_plot_kwargs),
+                PlotBeamEnergy(**single_plot_kwargs),
             ],
             outputs=[],
             log_directory=LOG_PATH,

@@ -16,7 +16,6 @@ from gluex_ksks.constants import (
     MISC_PATH,
     RFL_FIT_BINS,
     RFL_FIT_RANGE,
-    RFL_RANGE,
     RUN_RANGES,
     TRUE_POL_ANGLES,
 )
@@ -166,6 +165,14 @@ class FitResult:
     @property
     def bic(self) -> float:
         return self.npars * np.log(self.nobs) + self.n2ll  # kln(n) + -2ln(L)
+
+    @property
+    def values(self) -> FloatArray:
+        return self.opt.x
+
+    @property
+    def errors(self) -> FloatArray:
+        return np.sqrt(np.diag(self.opt.hess_inv.todense()))
 
 
 def get_run_period(run_number: int) -> str | None:
@@ -391,6 +398,7 @@ class SPlotFitResult:
     bkg_ldas: list[float]
     total_fit: FitResult
     v: FloatArray
+    weighted_total: float
 
     @property
     def aic(self) -> float:
@@ -619,3 +627,109 @@ def add_hx_angles(data: pl.LazyFrame) -> pl.LazyFrame:
         )
         .alias('hx_angles')
     ).unnest('hx_angles')
+
+
+def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
+    def process(struct) -> dict[str, float]:
+        p_px = struct['p4_1_Px']
+        p_py = struct['p4_1_Py']
+        p_pz = struct['p4_1_Pz']
+        p_e = struct['p4_1_E']
+
+        piplus1_px = struct['p4_4_Px']
+        piplus1_py = struct['p4_4_Py']
+        piplus1_pz = struct['p4_4_Pz']
+        piplus1_e = struct['p4_4_E']
+
+        piminus1_px = struct['p4_5_Px']
+        piminus1_py = struct['p4_5_Py']
+        piminus1_pz = struct['p4_5_Pz']
+        piminus1_e = struct['p4_5_E']
+
+        piplus2_px = struct['p4_6_Px']
+        piplus2_py = struct['p4_6_Py']
+        piplus2_pz = struct['p4_6_Pz']
+        piplus2_e = struct['p4_6_E']
+
+        piminus2_px = struct['p4_7_Px']
+        piminus2_py = struct['p4_7_Py']
+        piminus2_pz = struct['p4_7_Pz']
+        piminus2_e = struct['p4_7_E']
+
+        p_lab = ld.Vec4(p_px, p_py, p_pz, p_e)
+        piplus1_lab = ld.Vec4(piplus1_px, piplus1_py, piplus1_pz, piplus1_e)
+        piminus1_lab = ld.Vec4(piminus1_px, piminus1_py, piminus1_pz, piminus1_e)
+        piplus2_lab = ld.Vec4(piplus2_px, piplus2_py, piplus2_pz, piplus2_e)
+        piminus2_lab = ld.Vec4(piminus2_px, piminus2_py, piminus2_pz, piminus2_e)
+        return {
+            'piplus1_piminus2_m': (piplus1_lab + piminus2_lab).m,
+            'piplus2_piminus1_m': (piplus2_lab + piminus1_lab).m,
+            'p_piplus1_m': (p_lab + piplus1_lab).m,
+            'p_piplus2_m': (p_lab + piplus2_lab).m,
+            'p_piminus1_m': (p_lab + piminus1_lab).m,
+            'p_piminus2_m': (p_lab + piminus2_lab).m,
+            'p_piplus1_piminus1_m': (p_lab + piplus1_lab + piminus1_lab).m,
+            'p_piplus1_piminus2_m': (p_lab + piplus1_lab + piminus2_lab).m,
+            'p_piplus2_piminus1_m': (p_lab + piplus2_lab + piminus1_lab).m,
+            'p_piplus2_piminus2_m': (p_lab + piplus2_lab + piminus2_lab).m,
+            'p_piminus1_piminus2_m': (p_lab + piminus1_lab + piminus2_lab).m,
+        }
+
+    return data.with_columns(
+        pl.struct(
+            'p4_1_Px',
+            'p4_1_Py',
+            'p4_1_Pz',
+            'p4_1_E',
+            'p4_4_Px',
+            'p4_4_Py',
+            'p4_4_Pz',
+            'p4_4_E',
+            'p4_5_Px',
+            'p4_5_Py',
+            'p4_5_Pz',
+            'p4_5_E',
+            'p4_6_Px',
+            'p4_6_Py',
+            'p4_6_Pz',
+            'p4_6_E',
+            'p4_7_Px',
+            'p4_7_Py',
+            'p4_7_Pz',
+            'p4_7_E',
+        )
+        .map_elements(
+            process,
+            return_dtype=pl.Struct(
+                {
+                    'piplus1_piminus2_m': pl.Float64,
+                    'piplus2_piminus1_m': pl.Float64,
+                    'p_piplus1_m': pl.Float64,
+                    'p_piplus2_m': pl.Float64,
+                    'p_piminus1_m': pl.Float64,
+                    'p_piminus2_m': pl.Float64,
+                    'p_piplus1_piminus1_m': pl.Float64,
+                    'p_piplus1_piminus2_m': pl.Float64,
+                    'p_piplus2_piminus1_m': pl.Float64,
+                    'p_piplus2_piminus2_m': pl.Float64,
+                    'p_piminus1_piminus2_m': pl.Float64,
+                }
+            ),
+        )
+        .alias('m_alt_hypos')
+    ).unnest('m_alt_hypos')
+
+
+def to_latex(value: float, unc: float | None = None) -> str:
+    if unc is None:
+        mantissa, exponent = f'{value:.2E}'.split('E')
+        return f'${mantissa} \\times 10^{{{exponent}}}$'
+    if value == 0.0 and unc == 0.0:
+        return r'$0.0$ (fixed)'
+    unc_trunc = round(unc, -int(np.floor(np.log10(abs(unc)))) + 1)
+    val_trunc = round(value, -int(np.floor(np.log10(abs(unc)))) + 1)
+    ndigits = int(np.floor(np.log10(abs(unc)))) - 1
+    expo = int(np.floor(np.log10(abs(val_trunc if val_trunc != 0.0 else unc_trunc))))
+    val_mantissa = val_trunc / 10**expo
+    unc_mantissa = unc_trunc / 10**expo
+    return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from numpy import pi
+from laddu import available_parallelism
 
 DATA_TYPES = ['data', 'sigmc', 'bkgmc', 'bggen']
 
@@ -60,6 +61,14 @@ TRUE_POL_ANGLES = {
     's20': {'0.0': 1.4, '45.0': 47.1, '90.0': 93.4, '135.0': -42.2},
 }
 
+PARTICLE_TO_LATEX = {
+    'Proton': 'p',
+    'PiPlus1': r'\pi^+_1',
+    'PiMinus1': r'\pi^-_1',
+    'PiPlus2': r'\pi^+_2',
+    'PiMinus2': r'\pi^-_2',
+}
+
 
 def mkdirs_raw() -> None:
     for raw_path in {RAW_DATA_PATH, RAW_SIGMC_PATH, RAW_BKGMC_PATH}:
@@ -110,6 +119,7 @@ RFL_PDF_RANGE = (0.0, 0.5)
 
 MESON_MASS_RANGE = (1.0, 2.0)
 MESON_MASS_BINS = 50
+MESON_MASS_2D_BINS = 100
 
 BARYON_MASS_RANGE = (1.4, 3.7)
 BARYON_MASS_BINS = 115
@@ -142,6 +152,30 @@ ME_BINS = 100
 
 YOUDENJ_RANGE = (0.0, 10.0)
 YOUDENJ_BINS = 200
+
+BEAM_ENERGY_RANGE = (7.8, 9.0)
+BEAM_ENERGY_BINS = 120
+
+P_RANGE = (0.0, 10.0)
+P_BINS = 500
+
+BETA_RANGE = (-0.2, 1.2)
+BETA_BINS = 400
+
+DELTA_BETA_RANGE = (-1.0, 1.0)
+DELTA_BETA_BINS = 400
+
+DELTA_T_RANGE = (-10.0, 10.0)
+DELTA_T_BINS = 500
+
+DEDX_RANGE = (0.0, 25.0)
+DEDX_BINS = 250
+
+DETECTOR_THETA_DEG_RANGE = {'BCAL': (10.0, 140.0), 'FCAL': (0.0, 12.0)}
+DETECTOR_THETA_DEG_BINS = {'BCAL': 260, 'FCAL': 120}
+
+E_OVER_P_RANGE = (0.0, 4.0)
+E_OVER_P_BINS = 200
 
 
 @dataclass
@@ -204,3 +238,7 @@ MESON_PARTICLES = [
     a2_1320,
     a2_1700,
 ]
+_n_threads = available_parallelism()
+NUM_THREADS = _n_threads - 3 if available_parallelism() > 3 else 1
+GUIDED_MAX_STEPS = 300
+NBOOT = 30
