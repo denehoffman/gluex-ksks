@@ -945,7 +945,7 @@ def fit_guided(
     binned_fit_result_uncertainty: BinnedFitResultUncertainty,
     *,
     p0: FloatArray | None = None,
-    bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'CI-BC',
+    bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'SE',
     iters: int,
     threads: int,
     logger,

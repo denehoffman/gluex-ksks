@@ -609,6 +609,7 @@ class GuidedFit(Task):
         )
         fit_result = fit_guided(
             binned_fit_result,
+            bootstrap_mode='SE',
             iters=3,
             threads=NUM_THREADS,
             logger=self.logger,
