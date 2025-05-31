@@ -5,12 +5,14 @@ import laddu as ld
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
 
+from matplotlib.colors import CenteredNorm, ListedColormap
 import numpy as np
 import polars as pl
 import uproot
 from scipy.stats import chi2
 from scipy.optimize import OptimizeResult, minimize
 from uproot.behaviors.TBranch import HasBranches
+import matplotlib.pyplot as plt
 
 from gluex_ksks.constants import (
     MISC_PATH,
@@ -733,3 +735,24 @@ def to_latex(value: float, unc: float | None = None) -> str:
     val_mantissa = val_trunc / 10**expo
     unc_mantissa = unc_trunc / 10**expo
     return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'
+
+
+def custom_colormap():
+    n = 256
+    viridis = plt.get_cmap('viridis', n)
+    cool = plt.get_cmap('cool', n)
+
+    n_neg = 128
+    n_pos = 127
+    n_white = 1
+
+    neg_colors = cool(np.linspace(0.0, 1.0, n_neg))
+    pos_colors = viridis(np.linspace(0.0, 1.0, n_pos))
+    white = np.ones((n_white, 4))  # RGBA white
+
+    colors = np.vstack([neg_colors, white, pos_colors])
+    cmap = ListedColormap(colors)
+
+    norm = CenteredNorm(vcenter=0.0)
+
+    return cmap, norm
