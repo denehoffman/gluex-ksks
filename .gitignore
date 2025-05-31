@@ -13,11 +13,11 @@ tmp/
 
 analysis/datasets
 analysis/raw_datasets
-analysis/plots
-analysis/reports
 analysis/misc
 analysis/logs
 analysis/fits
 
 .modak
 *.log
+
+guided_fit.svg
