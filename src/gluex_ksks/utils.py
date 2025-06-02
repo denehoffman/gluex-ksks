@@ -100,8 +100,9 @@ class CCDBData:
 
 @dataclass
 class Histogram:
-    counts: NDArray[np.floating]
-    bins: NDArray[np.floating]
+    counts: FloatArray
+    bins: FloatArray
+    errors: FloatArray | None = None
 
     @staticmethod
     def sum(histograms: list[Histogram]) -> Histogram | None:
@@ -113,7 +114,23 @@ class Histogram:
         counts = np.sum(
             np.array([histogram.counts for histogram in histograms]), axis=0
         )
-        return Histogram(counts, bins)
+        errors = np.sqrt(
+            np.sum(
+                np.array(
+                    [
+                        np.power(
+                            histogram.errors
+                            if histogram.errors is not None
+                            else np.zeros_like(histogram.counts),
+                            2,
+                        )
+                        for histogram in histograms
+                    ]
+                ),
+                axis=0,
+            )
+        )
+        return Histogram(counts, bins, errors)
 
 
 class RCDBData:
@@ -737,7 +754,7 @@ def to_latex(value: float, unc: float | None = None) -> str:
     return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'
 
 
-def custom_colormap():
+def custom_colormap() -> tuple[ListedColormap, CenteredNorm]:
     n = 256
     viridis = plt.get_cmap('viridis', n)
     cool = plt.get_cmap('cool', n)

@@ -63,8 +63,11 @@ from gluex_ksks.utils import (
     add_m_baryon,
     add_m_meson,
     select_mesons_tag,
+    custom_colormap,
 )
 import matplotlib.pyplot as plt
+
+CMAP, NORM = custom_colormap()
 
 
 class PlotTask(Task):
@@ -426,13 +429,16 @@ class PlotMesonMass(PlotTask):
         plt.close()
 
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data['m_meson'],
             df_data['ksb_costheta'],
             bins=(MESON_MASS_BINS, COSTHETA_BINS),
             range=(MESON_MASS_RANGE, COSTHETA_RANGE),
             weights=df_data['weight'],
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
         ax.set_ylabel(r'$\cos\left(\theta\right)$ of $K_{S,B}^0$')
         plt.savefig(self.outputs[1])
@@ -574,13 +580,16 @@ class PlotBaryonMass(PlotTask):
         plt.close()
 
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data['m_baryon'],
             df_data['ksb_costheta'],
             bins=(BARYON_MASS_BINS, COSTHETA_BINS),
             range=(BARYON_MASS_RANGE, COSTHETA_RANGE),
             weights=df_data['weight'],
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel('Invariant Mass of $K_{S,B}^0 p$ (GeV/$c^2$)')
         ax.set_ylabel(r'$\cos\left(\theta\right)$ of $K_{S,B}^0$')
         plt.savefig(self.outputs[1])
@@ -627,26 +636,32 @@ class PlotAngles(PlotTask):
 
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data['m_meson'],
             df_data['hx_costheta'],
             bins=(MESON_MASS_2D_BINS, COSTHETA_BINS),
             range=(MESON_MASS_RANGE, COSTHETA_RANGE),
             weights=df_data['weight'],
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel('Invariant Mass of $K_S^0 K_S^0$ (GeV/$c^2$)')
         ax.set_ylabel(r'$\cos\left(\theta_{\text{HX}}\right)$')
         plt.savefig(self.outputs[0])
         plt.close()
 
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data['m_meson'],
             df_data['hx_phi'],
             bins=(MESON_MASS_2D_BINS, PHI_BINS),
             range=(MESON_MASS_RANGE, PHI_RANGE),
             weights=df_data['weight'],
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel('Invariant Mass of $K_S^0 K_S^0$ (GeV/$c^2$)')
         ax.set_ylabel(r'$\phi_{\text{HX}}$ (rad)')
         plt.savefig(self.outputs[1])
@@ -1467,13 +1482,16 @@ class PlotAltHypos(PlotTask):
         _, ax = plt.subplots()
         range_ = (0.25, 1.7)
         bins = 200
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data['piplus1_piminus2_m'],
             df_data['piplus2_piminus1_m'],
             bins=(bins, bins),
             range=(range_, range_),
             weights=df_data['weight'],
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel(r'Invariant Mass of $\pi^+_1\pi^-_2$ (GeV/$c^2$)')
         ax.set_ylabel(r'Invariant Mass of $\pi^+_2\pi^-_1$ (GeV/$c^2$)')
         plt.savefig(self.outputs[-1])
@@ -1522,13 +1540,16 @@ class PlotDeltaTVP(DetectorPlotTask):
         )
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data[p_column],
             df_data[delta_t_column],
             weights=df_data['weight'],
             bins=(P_BINS, DELTA_T_BINS),
             range=(P_RANGE, DELTA_T_RANGE),
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
         ax.set_ylabel(rf'{self.detector} $\Delta t$ (ns)')
         plt.savefig(self.outputs[0])
@@ -1577,13 +1598,16 @@ class PlotBetaVP(DetectorPlotTask):
         )
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data[p_column],
             df_data[beta_column],
             weights=df_data['weight'],
             bins=(P_BINS, BETA_BINS),
             range=(P_RANGE, BETA_RANGE),
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
         ax.set_ylabel(rf'{self.detector} $\beta$')
         plt.savefig(self.outputs[0])
@@ -1632,13 +1656,16 @@ class PlotDEDXVP(DetectorPlotTask):
         )
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data[p_column],
             df_data[dedx_column],
             weights=df_data['weight'],
             bins=(P_BINS, DEDX_BINS),
             range=(P_RANGE, DEDX_RANGE),
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
         ax.set_ylabel(rf'{self.detector} $\mathrm{{d}}E/\mathrm{{d}}x$ (keV/cm)')
         plt.savefig(self.outputs[0])
@@ -1691,26 +1718,32 @@ class PlotEoverPVPandTheta(DetectorPlotTask):
         )
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data[p_column],
             df_data[e_column] / df_data[p_column],
             weights=df_data['weight'],
             bins=(P_BINS, E_OVER_P_BINS),
             range=(P_RANGE, E_OVER_P_RANGE),
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
         ax.set_ylabel(rf'{self.detector} $E/p$')
         plt.savefig(self.outputs[0])
         plt.close()
 
         _, ax = plt.subplots()
-        ax.hist2d(
+        _, _, _, im = ax.hist2d(
             df_data[theta_column] * 180 / np.pi,
             df_data[e_column] / df_data[p_column],
             weights=df_data['weight'],
             bins=(DETECTOR_THETA_DEG_BINS[self.detector], E_OVER_P_BINS),
             range=(DETECTOR_THETA_DEG_RANGE[self.detector], E_OVER_P_RANGE),
+            cmap=CMAP,
+            norm=NORM,
         )
+        plt.colorbar(im)
         ax.set_xlabel(rf'${PARTICLE_TO_LATEX[self.particle]}$ $\theta$ (deg)')
         ax.set_ylabel(rf'{self.detector} $E/p$')
         plt.savefig(self.outputs[1])

@@ -370,7 +370,15 @@ class BinnedFitResult:
                 bins=self.binning.bins,
                 range=self.binning.range,
                 weights=weights,
-            )
+            ),
+            np.sqrt(
+                np.histogram(
+                    values,
+                    bins=self.binning.bins,
+                    range=self.binning.range,
+                    weights=np.power(weights, 2),
+                )[0]
+            ),
         )
         self.data_hist_cache = data_hist
         return data_hist
@@ -488,16 +496,23 @@ class UnbinnedFitResult:
             return data_hist
         data_datasets = self.paths.get_data_datasets()
         res_mass = ld.Mass([2, 3])
+        values = np.concatenate(
+            [res_mass.value_on(dataset) for dataset in data_datasets]
+        )
+        weights = np.concatenate([dataset.weights for dataset in data_datasets])
         data_hist = Histogram(
             *np.histogram(
-                np.concatenate(
-                    [res_mass.value_on(data_dataset) for data_dataset in data_datasets]
-                ),
-                weights=np.concatenate(
-                    [data_dataset.weights for data_dataset in data_datasets]
-                ),
+                values,
+                weights=weights,
                 bins=binning.edges,
-            )
+            ),
+            np.sqrt(
+                np.histogram(
+                    values,
+                    weights=np.power(weights, 2),
+                    bins=binning.edges,
+                )[0]
+            ),
         )
         self.data_hist_cache = data_hist
         return data_hist
