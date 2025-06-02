@@ -10,7 +10,8 @@ source /home/nhoffman/.venv/bin/activate
 source /raid3/nhoffman/root/root_install_313/bin/thisroot.sh
 
 cd "$PWD" || exit
-uv pip install --reinstall --no-cache .
+uv pip install --reinstall .
 
-python3 -m gluex_ksks
+which python3
+python3 -m gluex_ksks --chisqdof="$1"
 echo "Done!"

@@ -16,31 +16,8 @@ run-dselector queue='blue': setup
 log-reset:
   rm -rf analysis/logs
 
-[confirm]
-raw-data-reset:
-  rm -rf analysis/raw_datasets
-
-[confirm]
-data-reset:
-  rm -rf analysis/datasets
-
-[confirm]
-all-data-reset:
-  rm -rf analysis/raw_datasets
-  rm -rf analysis/datasets
-
-[confirm]
-analysis-reset:
-  rm -rf analysis/fits
-  rm -rf analysis/plots
-  rm -rf analysis/reports
-
-[confirm]
-hard-reset: analysis-reset all-data-reset log-reset
-  rm -rf analysis/misc
-
-run queue='blue': setup
-  sbatch slurm_job.sh --partition={{queue}}
+run chisqdof='3.00' queue='blue':
+  sbatch slurm_job.sh {{chisqdof}} --partition={{queue}}
 
 tail:
-  tail -f slurm.log
+  tail -f analysis/logs/all.log

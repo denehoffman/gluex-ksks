@@ -18,6 +18,7 @@ analysis/logs
 analysis/fits
 
 .modak
+.modak*
 *.log
 
 guided_fit.svg
