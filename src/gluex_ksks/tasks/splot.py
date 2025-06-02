@@ -442,7 +442,7 @@ class SPlotReport(Task):
             output_str += f"""
         {method_string} & {nspec} & {fit_result.aic - min_aic:.3f} & {fit_result.bic - min_bic:.3f} \\\\"""
         output_str += r"""\bottomrule
-        \end{tablular}
+        \end{tabular}
         \caption{Relative AIC and BIC values for each sPlot fitting method. ``Fixed'' and ``free'' refer to whether the background slope parameters are fixed to values obtained from background Monte Carlo or are free parameters in the fit.}\label{tab:splot-model-results}
     \end{center}
 \end{table}"""
