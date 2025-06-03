@@ -745,6 +745,8 @@ def to_latex(value: float, unc: float | None = None) -> str:
         return f'${mantissa} \\times 10^{{{exponent}}}$'
     if value == 0.0 and unc == 0.0:
         return r'$0.0$ (fixed)'
+    if np.isnan(value) or np.isnan(unc):
+        return r' \textemdash '
     unc_trunc = round(unc, -int(np.floor(np.log10(abs(unc)))) + 1)
     val_trunc = round(value, -int(np.floor(np.log10(abs(unc)))) + 1)
     ndigits = int(np.floor(np.log10(abs(unc)))) - 1
