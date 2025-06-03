@@ -296,7 +296,7 @@ class FactorizationReport(Task):
         ]
         output_str = r"""\begin{table}
     \begin{center}
-        \begin{tablular}{ccc}\toprule
+        \begin{tabular}{ccc}\toprule
             Number of Background Components & Log of Likelihood Ratio & Significance ($p$-value) \\\midrule"""
         for i, factorization_fit in enumerate(input_fits):
             output_str += (
@@ -305,7 +305,7 @@ class FactorizationReport(Task):
                 + f' {i + 2} & {to_latex(factorization_fit.likelihood_ratio)} & {to_latex(factorization_fit.p)} \\\\'
             )
         output_str += r"""\bottomrule
-        \end{tablular}
+        \end{tabular}
         \caption{The results of the significance test (probability of accepting the null hypothesis, that the rest-frame lifetime is statistically independent of the invariant mass of $K_S^0K_S^0$) described in \Cref{eq:independence_test} for all data after the standard fiducial cuts given in \Cref{tab:fiducial-cuts}.}\label{tab:independence-test}
     \end{center}
 \end{table}"""

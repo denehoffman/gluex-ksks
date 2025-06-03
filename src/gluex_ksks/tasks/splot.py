@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pickle
 import polars as pl
 from modak import Task
+from num2words import num2words
 from scipy.optimize import minimize
 from gluex_ksks.constants import (
     BLUE,
@@ -316,7 +317,7 @@ class SPlotFit(Task):
             {normalized_name} & {to_latex(value, error)} \\\\"""
         output_str += rf"""\bottomrule
         \end{{tabular}}
-        \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {self.nspec} {self.method} background slope(s). Uncertainties are calculated using the covariance matrix of the fit. All $\lambda$ parameters have units of $\si{{\nano\second}}^{{-1}}$.}}
+        \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {num2words(self.nspec)} {self.method} background slope{'s' if self.nspec > 1 else ''}. Uncertainties are calculated using the covariance matrix of the fit.{r' All $\lambda$ parameters have units of $\si{\nano\second}^{-1}$.' if self.method == 'free' else ''}}}
     \end{{center}}
 \end{{table}}
 % {fit_result.weighted_total} weighted events"""

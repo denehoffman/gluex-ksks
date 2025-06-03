@@ -137,6 +137,12 @@ wheels = [
 ]
 
 [[package]]
+name = "docopt"
+version = "0.6.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/55/8f8cab2afd404cf578136ef2cc5dfb50baa1761b68c9da1fb1e4eed343c9/docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491", size = 25901 }
+
+[[package]]
 name = "docopt-ng"
 version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -204,6 +210,7 @@ dependencies = [
     { name = "laddu" },
     { name = "matplotlib" },
     { name = "modak" },
+    { name = "num2words" },
     { name = "polars" },
     { name = "scipy" },
     { name = "uproot" },
@@ -216,6 +223,7 @@ requires-dist = [
     { name = "laddu", specifier = ">=0.7.0" },
     { name = "matplotlib", specifier = ">=3.10.3" },
     { name = "modak", specifier = ">=0.2.0" },
+    { name = "num2words", specifier = ">=0.5.14" },
     { name = "polars", specifier = ">=1.29.0" },
     { name = "scipy", specifier = ">=1.15.3" },
     { name = "uproot", specifier = ">=5.6.1" },
@@ -443,6 +451,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/95/c78c3557fc13d5816f5d479e0bb91828deef68808bc4b62222d45a091932/modak-0.2.1-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:151cae32c3393f36be9a8271b1cda675d2f141b2863fd125dd8b00cb7b6690cc", size = 587984 },
     { url = "https://files.pythonhosted.org/packages/64/07/fe072a8fd649f24d9635a0d32ff48ea1f8ae76410c2725f79e23461b3f08/modak-0.2.1-cp314-cp314-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:4ab6184008397ce7c5ce5752dee44c9ce7f00ec723a2dc65f33c94ea21baa05f", size = 443698 },
     { url = "https://files.pythonhosted.org/packages/d0/24/24bb3df355f453fd01df19481d8d4077e5fff214acbe2bc8d49f4db2c787/modak-0.2.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e34e4f59156114bd749e062cdac7ee4edef9b37b402e879687b0b7d472e60ab9", size = 417822 },
+]
+
+[[package]]
+name = "num2words"
+version = "0.5.14"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docopt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/58/ad645bd38b4b648eb2fc2ba1b909398e54eb0cbb6a7dbd2b4953e38c9621/num2words-0.5.14.tar.gz", hash = "sha256:b066ec18e56b6616a3b38086b5747daafbaa8868b226a36127e0451c0cf379c6", size = 218213 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/5b/545e9267a1cc080c8a1be2746113a063e34bcdd0f5173fd665a5c13cb234/num2words-0.5.14-py3-none-any.whl", hash = "sha256:1c8e5b00142fc2966fd8d685001e36c4a9911e070d1b120e1beb721fa1edb33d", size = 163525 },
 ]
 
 [[package]]
