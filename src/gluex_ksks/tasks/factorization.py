@@ -294,7 +294,7 @@ class FactorizationReport(Task):
         input_fits: list[FactorizationResult] = [
             pickle.load(inp.outputs[0].open('rb')) for inp in self.inputs
         ]
-        output_str = r"""\begin{table}
+        output_str = r"""\begin{table}[h]
     \begin{center}
         \begin{tabular}{ccc}\toprule
             Number of Background Components & Log of Likelihood Ratio & Significance ($p$-value) \\\midrule"""

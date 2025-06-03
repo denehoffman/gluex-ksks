@@ -298,7 +298,7 @@ class SPlotFit(Task):
                 )
             )
         output_str = r"""
-\begin{table}
+\begin{table}[h]
     \begin{center}
         \begin{tabular}{lr}\toprule
             Parameter & Value \\\midrule"""
@@ -427,7 +427,7 @@ class SPlotReport(Task):
                 min_aic = fit_result.aic
             if fit_result.bic < min_bic:
                 min_bic = fit_result.bic
-        output_str = r"""\begin{table}
+        output_str = r"""\begin{table}[h]
     \begin{center}
         \begin{tabular}{ccccc}\toprule
         Background Slope Parameters & Number of Background Components & $r\text{AIC}$ & $r\text{BIC}$\\\midrule"""

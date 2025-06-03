@@ -1201,7 +1201,7 @@ class UnbinnedFitReport(Task):
         unbinned_fit_result: UnbinnedFitResultUncertainty = pickle.load(
             self.inputs[0].outputs[0].open('rb')
         )
-        output_str = r"""\begin{table}
+        output_str = r"""\begin{table}[h]
     \begin{center}
         \begin{tabular}{llrrr}\toprule
         Wave & Resonance & Real & Imaginary & Total ($\abs{F}^2$) \\\midrule"""
