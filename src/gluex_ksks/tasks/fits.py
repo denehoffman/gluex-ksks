@@ -168,7 +168,7 @@ class BinnedFit(Task):
             f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}',
             inputs=inputs,
             outputs=outputs,
-            isolated=True,
+            resources={'fit': 1},
             log_directory=LOG_PATH,
         )
 
@@ -238,7 +238,7 @@ class BinnedFitUncertainty(Task):
             f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
-            isolated=True,
+            resources={'fit': 1},
             log_directory=LOG_PATH,
         )
 
@@ -597,7 +597,7 @@ class GuidedFit(Task):
             f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
-            isolated=True,
+            resources={'fit': 1},
             log_directory=LOG_PATH,
         )
 
@@ -918,7 +918,7 @@ class UnbinnedFit(Task):
             f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}',
             inputs=inputs,
             outputs=outputs,
-            isolated=True,
+            resources={'fit': 1},
             log_directory=LOG_PATH,
         )
 
@@ -996,7 +996,7 @@ class UnbinnedFitUncertainty(Task):
             f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
-            isolated=True,
+            resources={'fit': 1},
             log_directory=LOG_PATH,
         )
 

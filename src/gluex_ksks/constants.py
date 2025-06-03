@@ -238,7 +238,8 @@ MESON_PARTICLES = [
     a2_1320,
     a2_1700,
 ]
+MAX_FITS = 2
 _n_threads = available_parallelism()
-NUM_THREADS = _n_threads - 3 if available_parallelism() > 3 else 1
-GUIDED_MAX_STEPS = 300
+NUM_THREADS = (_n_threads - 1) // 2 if available_parallelism() > 2 else 1
+GUIDED_MAX_STEPS = 400
 NBOOT = 30
