@@ -306,7 +306,7 @@ class FactorizationReport(Task):
             )
         output_str += r"""\bottomrule
         \end{tabular}
-        \caption{The results of the significance test (probability of accepting the null hypothesis, that the rest-frame lifetime is statistically independent of the invariant mass of $K_S^0K_S^0$) described in \Cref{eq:independence_test} for all data after the standard fiducial cuts given in \Cref{tab:fiducial-cuts}.}\label{tab:independence-test}
+        \caption{The results of the significance test (probability of accepting the null hypothesis, that the rest-frame lifetime is statistically independent of the invariant mass of $K_S^0K_S^0$) described in \Cref{eq:independence-test} for all data after the standard fiducial cuts given in \Cref{tab:fiducial-cuts}.}\label{tab:independence-test}
     \end{center}
 \end{table}"""
         self.outputs[0].write_text(output_str)
