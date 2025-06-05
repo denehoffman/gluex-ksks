@@ -126,7 +126,7 @@ class PlotTask(Task):
             output_names = [output_names]
         outputs = [
             PLOTS_PATH
-            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.svg'
+            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.png'
             for name in output_names
         ]
         task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
@@ -310,7 +310,7 @@ class CombinedPlotTask(Task):
             output_names = [output_names]
         outputs = [
             PLOTS_PATH
-            / f'{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}.svg'
+            / f'{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}.png'
             for name in output_names
         ]
         task_name = f'plot_{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}'

@@ -72,7 +72,7 @@ def main(chisqdof: float):
                 method=None,
                 nspec=None,
             )
-            for data_type in ['data', 'sigmc']
+            for data_type in ['data', 'sigmc', 'bkgmc']
         ],
         *[
             PlotAll(
@@ -85,7 +85,9 @@ def main(chisqdof: float):
                 nspec=None,
             )
             for cuts in list(
-                product([True, False], [True, False], [None], [True, False, None])
+                product(
+                    [True, False], [True, False], [None, chisqdof], [True, False, None]
+                )
             )
         ],
         *[
@@ -96,7 +98,9 @@ def main(chisqdof: float):
                 select_mesons=cuts[3],
             )
             for cuts in list(
-                product([True, False], [True, False], [None], [True, False, None])
+                product(
+                    [True, False], [True, False], [None, chisqdof], [True, False, None]
+                )
             )
         ],
         FactorizationReport(

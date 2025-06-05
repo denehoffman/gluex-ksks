@@ -41,6 +41,6 @@ image.cmap: viridis
 # Error Bars
 errorbar.capsize: 1.0
 # Saving
-savefig.dpi: 400
-savefig.format: pdf
+savefig.dpi: 1000
+savefig.format: png
 savefig.bbox: tight

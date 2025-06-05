@@ -289,7 +289,7 @@ class PlotBinnedFit(Task):
                 nboot=nboot,
             )
         ]
-        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.svg')]
+        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
             f'binned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
             inputs=inputs,
@@ -661,7 +661,7 @@ class PlotGuidedFit(Task):
                 nboot=nboot,
             ),
         ]
-        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.svg')]
+        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
             f'guided_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
             inputs=inputs,
@@ -1047,7 +1047,7 @@ class PlotUnbinnedFit(Task):
                 guided=guided,
             )
         ]
-        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + '.svg')]
+        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + '.png')]
         super().__init__(
             f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}',
             inputs=inputs,
@@ -1324,7 +1324,7 @@ class PlotUnbinnedAndBinnedFit(Task):
         ]
         outputs = [
             PLOTS_PATH
-            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}{"_guided" if guided else ""}_{bootstrap_mode}.svg',
+            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}{"_guided" if guided else ""}_{bootstrap_mode}.png',
         ]
         super().__init__(
             f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}_{bootstrap_mode}',
