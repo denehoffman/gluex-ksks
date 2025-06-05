@@ -1614,6 +1614,18 @@ class ProcessUnbinned(Task):
                 nboot_guided=NBOOT,
                 guided=False,
             ),
+            PlotGuidedFit(
+                protonz_cut=protonz_cut,
+                mass_cut=mass_cut,
+                chisqdof=chisqdof,
+                select_mesons=select_mesons,
+                method=method,
+                nspec=nspec,
+                waves=waves,
+                nbins=MESON_MASS_BINS,
+                nboot=NBOOT,
+                bootstrap_mode='CI-BC',
+            ),
             PlotUnbinnedFit(
                 protonz_cut=protonz_cut,
                 mass_cut=mass_cut,
