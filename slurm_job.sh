@@ -6,7 +6,8 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=120G
 
-source /home/nhoffman/.venv/bin/activate
+uv venv --python=3.13
+source .venv/bin/activate
 source /raid3/nhoffman/root/root_install_313/bin/thisroot.sh
 
 cd "$PWD" || exit
