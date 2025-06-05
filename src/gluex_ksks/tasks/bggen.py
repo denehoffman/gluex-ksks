@@ -114,6 +114,8 @@ class PlotBGGEN(Task):
             data_me.append(group_df['ME'].to_numpy())
             weights.append(group_df['weight'].to_numpy())
 
+        n_groups = len(top_topos) + 1
+
         color_sequence = [
             BLUE,
             RED,
@@ -122,7 +124,7 @@ class PlotBGGEN(Task):
             ORANGE,
             PINK,
             GRAY,
-        ]
+        ][:n_groups]
 
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
