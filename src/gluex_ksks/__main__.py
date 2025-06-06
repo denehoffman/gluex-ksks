@@ -187,7 +187,7 @@ def main(chisqdof: float):
                         method=None,
                         nspec=None,
                     )
-                    for data_type in ['data', 'sigmc']
+                    for data_type in ['data', 'sigmc', 'bkgmc']
                 ],
                 PlotAll(
                     data_type='data',
