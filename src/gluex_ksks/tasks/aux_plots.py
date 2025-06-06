@@ -96,7 +96,7 @@ class MakeAuxiliaryPlots(Task):
 
         # Spherical harmonics plot
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d', tight_layout=False)
+        ax = fig.add_subplot(111, projection='3d')
         lms = [(0, 0), (2, 0), (2, 1), (2, 2)]
         ylabels = ['$S_0$', '$D_0$', '$D_1$', '$D_2$']
         xs = np.linspace(-1, 1, 100)
