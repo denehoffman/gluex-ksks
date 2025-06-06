@@ -22,3 +22,6 @@ analysis/fits
 *.log
 
 guided_fit.svg
+
+# LaTeX
+*.aux
