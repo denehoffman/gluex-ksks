@@ -1126,7 +1126,7 @@ class PlotUnbinnedFit(Task):
                     fit_hist.counts,
                     fit_hist.bins,
                     color=BLACK,
-                    label='Fit (Unbinned{", Guided" if self.guided else ""})',
+                    label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )
@@ -1388,7 +1388,7 @@ class PlotUnbinnedAndBinnedFit(Task):
                         unbinned_fit_hist.counts,
                         unbinned_fit_hist.bins,
                         color=BLACK,
-                        label='Fit (Unbinned{", Guided" if self.guided else ""})',
+                        label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
                         fill=True,
                         alpha=0.2,
                     )
@@ -1470,7 +1470,7 @@ class PlotUnbinnedAndBinnedFit(Task):
                     unbinned_fit_hist.counts,
                     unbinned_fit_hist.bins,
                     color=BLACK,
-                    label='Fit (Unbinned{", Guided" if self.guided else ""})',
+                    label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )

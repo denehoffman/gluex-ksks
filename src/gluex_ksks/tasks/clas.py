@@ -247,7 +247,7 @@ class PlotCLASComparison(Task):
             fmt='v',
             markersize=1,
             color=BLUE,
-            label='CLAS S-Wave ($S+B$, projected fractions)',
+            label='CLAS S-Wave\n($S+B$, projected fractions)',
         )
         ax[0].errorbar(
             clas_centers,
@@ -256,7 +256,7 @@ class PlotCLASComparison(Task):
             fmt='^',
             markersize=1,
             color=BLUE,
-            label='CLAS S-Wave (sideband, projected fractions)',
+            label='CLAS S-Wave\n(sideband, projected fractions)',
         )
 
         # D-wave
@@ -286,7 +286,7 @@ class PlotCLASComparison(Task):
             fmt='v',
             markersize=1,
             color=BLUE,
-            label='CLAS D-Wave ($S+B$, projected fractions)',
+            label='CLAS D-Wave\n($S+B$, projected fractions)',
         )
         ax[1].errorbar(
             clas_centers,
@@ -295,7 +295,7 @@ class PlotCLASComparison(Task):
             fmt='^',
             markersize=1,
             color=BLUE,
-            label='CLAS D-Wave (sideband, projected fractions)',
+            label='CLAS D-Wave\n(sideband, projected fractions)',
         )
         ax[0].legend()
         ax[1].legend()
@@ -363,7 +363,7 @@ class PlotCLASComparison(Task):
             fmt='v',
             markersize=1,
             color=BLUE,
-            label='CLAS S-Wave ($S+B$, projected fractions)',
+            label='CLAS S-Wave\n($S+B$, projected fractions)',
         )
 
         # D-wave
@@ -393,7 +393,7 @@ class PlotCLASComparison(Task):
             fmt='v',
             markersize=1,
             color=BLUE,
-            label='CLAS D-Wave ($S+B$, projected fractions)',
+            label='CLAS D-Wave\n($S+B$, projected fractions)',
         )
         ax[0].legend()
         ax[1].legend()
@@ -461,7 +461,7 @@ class PlotCLASComparison(Task):
             fmt='^',
             markersize=1,
             color=BLUE,
-            label='CLAS S-Wave (sideband, projected fractions)',
+            label='CLAS S-Wave\n(sideband, projected fractions)',
         )
 
         # D-wave
@@ -491,7 +491,7 @@ class PlotCLASComparison(Task):
             fmt='^',
             markersize=1,
             color=BLUE,
-            label='CLAS D-Wave (sideband, projected fractions)',
+            label='CLAS D-Wave\n(sideband, projected fractions)',
         )
         ax[0].legend()
         ax[1].legend()
