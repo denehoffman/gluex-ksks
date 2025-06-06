@@ -760,15 +760,15 @@ def to_latex(value: float, unc: float | None = None) -> str:
 
 def custom_colormap() -> tuple[ListedColormap, CenteredNorm]:
     n = 256
-    viridis = plt.get_cmap('viridis', n)
-    cool = plt.get_cmap('cool', n)
+    pos = plt.get_cmap('inferno', n)
+    neg = plt.get_cmap('winter', n)
 
     n_neg = 128
     n_pos = 127
     n_white = 1
 
-    neg_colors = cool(np.linspace(0.0, 1.0, n_neg))
-    pos_colors = viridis(np.linspace(0.0, 1.0, n_pos))
+    pos_colors = pos(np.linspace(0.0, 1.0, n_pos))
+    neg_colors = neg(np.linspace(0.0, 1.0, n_neg))[::-1]
     white = np.ones((n_white, 4))  # RGBA white
 
     colors = np.vstack([neg_colors, white, pos_colors])

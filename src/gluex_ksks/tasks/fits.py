@@ -1031,6 +1031,7 @@ class PlotUnbinnedFit(Task):
     ):
         self.waves = waves
         self.nbins = nbins
+        self.guided = guided
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -1081,7 +1082,7 @@ class PlotUnbinnedFit(Task):
                         fit_hist.counts,
                         fit_hist.bins,
                         color=BLACK,
-                        label='Fit (Unbinned)',
+                        label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
                         fill=True,
                         alpha=0.2,
                     )
@@ -1092,7 +1093,7 @@ class PlotUnbinnedFit(Task):
                     wave_hist.counts,
                     wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Unbinned)',
+                    label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )
@@ -1125,7 +1126,7 @@ class PlotUnbinnedFit(Task):
                     fit_hist.counts,
                     fit_hist.bins,
                     color=BLACK,
-                    label='Fit (Unbinned)',
+                    label='Fit (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )
@@ -1135,7 +1136,7 @@ class PlotUnbinnedFit(Task):
                     wave_hist.counts,
                     wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Unbinned)',
+                    label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )
@@ -1201,7 +1202,7 @@ class UnbinnedFitReport(Task):
         unbinned_fit_result: UnbinnedFitResultUncertainty = pickle.load(
             self.inputs[0].outputs[0].open('rb')
         )
-        output_str = r"""\begin{table}[h]
+        output_str = r"""\begin{table}[ht]
     \begin{center}
         \begin{tabular}{llrrr}\toprule
         Wave & Resonance & Real & Imaginary & Total ($\abs{F}^2$) \\\midrule"""
@@ -1295,6 +1296,7 @@ class PlotUnbinnedAndBinnedFit(Task):
     ):
         self.waves = waves
         self.nbins = nbins
+        self.guided = guided
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -1386,7 +1388,7 @@ class PlotUnbinnedAndBinnedFit(Task):
                         unbinned_fit_hist.counts,
                         unbinned_fit_hist.bins,
                         color=BLACK,
-                        label='Fit (Unbinned)',
+                        label='Fit (Unbinned{", Guided" if self.guided else ""})',
                         fill=True,
                         alpha=0.2,
                     )
@@ -1416,7 +1418,7 @@ class PlotUnbinnedAndBinnedFit(Task):
                     unbinned_wave_hist.counts,
                     unbinned_wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Unbinned)',
+                    label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )
@@ -1468,7 +1470,7 @@ class PlotUnbinnedAndBinnedFit(Task):
                     unbinned_fit_hist.counts,
                     unbinned_fit_hist.bins,
                     color=BLACK,
-                    label='Fit (Unbinned)',
+                    label='Fit (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )
@@ -1497,7 +1499,7 @@ class PlotUnbinnedAndBinnedFit(Task):
                     unbinned_wave_hist.counts,
                     unbinned_wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Unbinned)',
+                    label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
                     fill=True,
                     alpha=0.2,
                 )

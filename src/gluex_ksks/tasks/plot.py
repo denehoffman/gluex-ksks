@@ -4,6 +4,7 @@ from modak import Task
 
 import numpy as np
 from gluex_ksks.constants import (
+    BARYON_MASS_2D_BINS,
     BARYON_MASS_BINS,
     BARYON_MASS_RANGE,
     BEAM_ENERGY_BINS,
@@ -432,7 +433,7 @@ class PlotMesonMass(PlotTask):
         _, _, _, im = ax.hist2d(
             df_data['m_meson'],
             df_data['ksb_costheta'],
-            bins=(MESON_MASS_BINS, COSTHETA_BINS),
+            bins=(MESON_MASS_2D_BINS, COSTHETA_BINS),
             range=(MESON_MASS_RANGE, COSTHETA_RANGE),
             weights=df_data['weight'],
             cmap=CMAP,
@@ -450,13 +451,8 @@ class PlotMesonMass(PlotTask):
             sharex=True,
             gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.0},
         )
-        hist_ax.hist(
-            df_data['m_meson'],
-            weights=df_data['weight'],
-            bins=MESON_MASS_BINS,
-            range=MESON_MASS_RANGE,
-            color=BLUE,
-        )
+        hist_ax.stairs(counts, edges, color=BLUE)
+        hist_ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
 
         bar_height: float = 0.8
         bar_spacing: float = 0.3
@@ -583,7 +579,7 @@ class PlotBaryonMass(PlotTask):
         _, _, _, im = ax.hist2d(
             df_data['m_baryon'],
             df_data['ksb_costheta'],
-            bins=(BARYON_MASS_BINS, COSTHETA_BINS),
+            bins=(BARYON_MASS_2D_BINS, COSTHETA_BINS),
             range=(BARYON_MASS_RANGE, COSTHETA_RANGE),
             weights=df_data['weight'],
             cmap=CMAP,

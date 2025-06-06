@@ -7,11 +7,10 @@ import numpy as np
 
 from gluex_ksks.constants import (
     BLACK,
+    BLUE,
     LOG_PATH,
     MESON_MASS_RANGE,
-    PINK,
     PLOTS_PATH,
-    PURPLE,
 )
 from gluex_ksks.pwa import BinnedFitResultUncertainty
 from gluex_ksks.tasks.fits import BinnedFitUncertainty
@@ -139,11 +138,11 @@ class PlotCLASComparison(Task):
         ]
         outputs = [
             PLOTS_PATH
-            / ('CLAS_both_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.svg'),
+            / ('CLAS_both_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png'),
             PLOTS_PATH
-            / ('CLAS_peak_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.svg'),
+            / ('CLAS_peak_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png'),
             PLOTS_PATH
-            / ('CLAS_sideband_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.svg'),
+            / ('CLAS_sideband_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png'),
         ]
         super().__init__(
             f'clas_comparison_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{self.nbins}_boot_{nboot}_{bootstrap_mode}',
@@ -247,8 +246,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors,
             fmt='v',
             markersize=1,
-            color=PURPLE,
-            label='CLAS S-Wave',
+            color=BLUE,
+            label='CLAS S-Wave ($S+B$, projected fractions)',
         )
         ax[0].errorbar(
             clas_centers,
@@ -256,8 +255,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors_sideband,
             fmt='^',
             markersize=1,
-            color=PINK,
-            label='CLAS S-Wave (sideband)',
+            color=BLUE,
+            label='CLAS S-Wave (sideband, projected fractions)',
         )
 
         # D-wave
@@ -286,8 +285,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors,
             fmt='v',
             markersize=1,
-            color=PURPLE,
-            label='CLAS D-Wave',
+            color=BLUE,
+            label='CLAS D-Wave ($S+B$, projected fractions)',
         )
         ax[1].errorbar(
             clas_centers,
@@ -295,8 +294,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors_sideband,
             fmt='^',
             markersize=1,
-            color=PINK,
-            label='CLAS D-Wave (sideband)',
+            color=BLUE,
+            label='CLAS D-Wave (sideband, projected fractions)',
         )
         ax[0].legend()
         ax[1].legend()
@@ -363,8 +362,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors,
             fmt='v',
             markersize=1,
-            color=PURPLE,
-            label='CLAS S-Wave',
+            color=BLUE,
+            label='CLAS S-Wave ($S+B$, projected fractions)',
         )
 
         # D-wave
@@ -393,8 +392,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors,
             fmt='v',
             markersize=1,
-            color=PURPLE,
-            label='CLAS D-Wave',
+            color=BLUE,
+            label='CLAS D-Wave ($S+B$, projected fractions)',
         )
         ax[0].legend()
         ax[1].legend()
@@ -461,8 +460,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors_sideband,
             fmt='^',
             markersize=1,
-            color=PINK,
-            label='CLAS S-Wave (sideband)',
+            color=BLUE,
+            label='CLAS S-Wave (sideband, projected fractions)',
         )
 
         # D-wave
@@ -491,8 +490,8 @@ class PlotCLASComparison(Task):
             yerr=clas_errors_sideband,
             fmt='^',
             markersize=1,
-            color=PINK,
-            label='CLAS D-Wave (sideband)',
+            color=BLUE,
+            label='CLAS D-Wave (sideband, projected fractions)',
         )
         ax[0].legend()
         ax[1].legend()

@@ -16,9 +16,9 @@ class MakeAuxiliaryPlots(Task):
             'aux_plots',
             inputs=[],
             outputs=[
-                PLOTS_PATH / 'argand_diagram.svg',
-                PLOTS_PATH / 'spherical_harmonics.svg',
-                PLOTS_PATH / 'chew_mandelstam.svg',
+                PLOTS_PATH / 'argand_diagram.png',
+                PLOTS_PATH / 'spherical_harmonics.png',
+                PLOTS_PATH / 'chew_mandelstam.png',
             ],
             log_directory=LOG_PATH,
         )
@@ -96,7 +96,7 @@ class MakeAuxiliaryPlots(Task):
 
         # Spherical harmonics plot
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        ax = fig.add_subplot(111, projection='3d', tight_layout=False)
         lms = [(0, 0), (2, 0), (2, 1), (2, 2)]
         ylabels = ['$S_0$', '$D_0$', '$D_1$', '$D_2$']
         xs = np.linspace(-1, 1, 100)

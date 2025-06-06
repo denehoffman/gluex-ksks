@@ -60,7 +60,7 @@ class PlotBGGEN(Task):
         ]
         outputs = [
             PLOTS_PATH
-            / f'{name}_bggen{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}.svg'
+            / f'{name}_bggen{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}.png'
             for name in ['chisqdof_large', 'chisqdof', 'protonz', 'rfl', 'mm2', 'me']
         ]
         task_name = f'bggen_plots{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}'

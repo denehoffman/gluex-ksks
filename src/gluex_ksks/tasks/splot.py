@@ -298,7 +298,7 @@ class SPlotFit(Task):
                 )
             )
         output_str = r"""
-\begin{table}[h]
+\begin{table}[ht]
     \begin{center}
         \begin{tabular}{lr}\toprule
             Parameter & Value \\\midrule"""
@@ -317,7 +317,7 @@ class SPlotFit(Task):
             {normalized_name} & {to_latex(value, error)} \\\\"""
         output_str += rf"""\bottomrule
         \end{{tabular}}
-        \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {num2words(self.nspec)} {self.method} background slope{'s' if self.nspec > 1 else ''}. Uncertainties are calculated using the covariance matrix of the fit.{r' All $\lambda$ parameters have units of $\si{\nano\second}^{-1}$.' if self.method == 'free' else ''}}}
+        \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {num2words(self.nspec)} {self.method} background slope{'s' if self.nspec > 1 else ''}. Uncertainties are calculated using the covariance matrix of the fit.{r' All $\lambda$ parameters have units of $\si{\nano\second}^{-1}$.' if self.method == 'free' else ''}}}\label{{tab:splot-fit-results-chisqdof-{self.chisqdof:.2f}-{self.method}-{self.nspec}}}
     \end{{center}}
 \end{{table}}
 % {fit_result.weighted_total} weighted events"""
@@ -427,7 +427,7 @@ class SPlotReport(Task):
                 min_aic = fit_result.aic
             if fit_result.bic < min_bic:
                 min_bic = fit_result.bic
-        output_str = r"""\begin{table}[h]
+        output_str = r"""\begin{table}[ht]
     \begin{center}
         \begin{tabular}{ccccc}\toprule
         Background Slope Parameters & Number of Background Components & $r\text{AIC}$ & $r\text{BIC}$\\\midrule"""
