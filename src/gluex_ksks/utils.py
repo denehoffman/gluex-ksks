@@ -741,6 +741,8 @@ def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
 
 def to_latex(value: float, unc: float | None = None) -> str:
     if unc is None:
+        if np.isnan(value):
+            return r' \textemdash '
         mantissa, exponent = f'{value:.2E}'.split('E')
         return f'${mantissa} \\times 10^{{{exponent}}}$'
     if value == 0.0 and unc == 0.0:
