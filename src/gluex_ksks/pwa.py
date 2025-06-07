@@ -1066,12 +1066,11 @@ def fit_guided(
             max_steps=GUIDED_MAX_STEPS,
             skip_hessian=True,
         )
-        if status.converged:
-            if status.fx < best_nll:
-                best_nll = status.fx
-                best_status = status
+        if status.fx < best_nll:
+            best_nll = status.fx
+            best_status = status
     if best_status is None:
-        raise Exception('No fit converged')
+        raise Exception("'best_status' is None, this should be unreachable!")
     return GuidedFitResult(
         binned_fit_result_uncertainty,
         UnbinnedFitResult(
