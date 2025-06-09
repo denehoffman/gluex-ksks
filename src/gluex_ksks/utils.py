@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import pickle
+import sqlite3
 import laddu as ld
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
+from datetime import datetime
 
 from matplotlib.colors import CenteredNorm, ListedColormap
 import numpy as np
@@ -16,6 +18,9 @@ import matplotlib.pyplot as plt
 
 from gluex_ksks.constants import (
     MISC_PATH,
+    RCDB_SELECTION_PREFIX,
+    RCDB_SELECTION_SUFFIX,
+    REST_VERSION_TIMESTAMPS,
     RFL_FIT_BINS,
     RFL_FIT_RANGE,
     RUN_RANGES,
@@ -98,11 +103,28 @@ class CCDBData:
         return weight * (-scale / 6.0)  # (4 - 1) * 2 out-of-time peaks
 
 
-@dataclass
 class Histogram:
-    counts: FloatArray
-    bins: FloatArray
-    errors: FloatArray | None = None
+    def __init__(
+        self, counts: FloatArray, bins: FloatArray, errors: FloatArray | None = None
+    ):
+        self.counts = counts
+        self.bins = bins
+        self.errors = errors if errors is not None else np.zeros_like(counts)
+
+    @property
+    def nbins(self) -> int:
+        return len(self.bins) - 1
+
+    @property
+    def centers(self) -> FloatArray:
+        return (self.bins[1:] + self.bins[:-1]) / 2.0
+
+    @staticmethod
+    def empty(nbins: int, range: tuple[float, float]) -> Histogram:
+        bins = np.histogram_bin_edges([], bins=nbins, range=range)
+        counts = np.zeros(nbins)
+        errors = np.zeros(nbins)
+        return Histogram(counts, bins, errors)
 
     @staticmethod
     def sum(histograms: list[Histogram]) -> Histogram | None:
@@ -131,6 +153,12 @@ class Histogram:
             )
         )
         return Histogram(counts, bins, errors)
+
+    def get_bin_index(self, value: float) -> int | None:
+        ibin = np.digitize(value, self.bins)
+        if ibin == 0 or ibin == len(self.bins):
+            return None
+        return int(ibin) - 1
 
 
 class RCDBData:
@@ -197,6 +225,13 @@ class FitResult:
 def get_run_period(run_number: int) -> str | None:
     for rp, (lo, hi) in RUN_RANGES.items():
         if lo <= run_number <= hi:
+            return rp
+    return None
+
+
+def get_run_period_bound(run_number: int) -> str | None:
+    for rp, (_, hi) in RUN_RANGES.items():
+        if run_number <= hi:
             return rp
     return None
 
@@ -777,3 +812,103 @@ def custom_colormap() -> tuple[ListedColormap, CenteredNorm]:
     norm = CenteredNorm(vcenter=0.0)
 
     return cmap, norm
+
+
+def get_ccdb_table(
+    table_path: str, *, use_timestamp: bool = True
+) -> dict[int, list[list[str]]]:
+    with sqlite3.connect(str(MISC_PATH / 'ccdb.sqlite')) as ccdb:
+        path_parts = table_path.split('/')
+        cursor = ccdb.cursor()
+        query = """
+            SELECT tt.nColumns, rr.runMin, rr.runMax, cs.vault, a.created
+            FROM directories d0
+            """
+        for i, path_part in enumerate(path_parts[1:-1]):
+            query += f"JOIN directories d{i + 1} ON d{i + 1}.parentId = d{i}.id AND d{i + 1}.name = '{path_part}'"
+        query += f"""
+            JOIN typeTables tt ON d{len(path_parts) - 2}.id = tt.directoryId AND tt.name = '{path_parts[-1]}'
+            JOIN constantSets cs ON tt.id = cs.constantTypeId
+            JOIN assignments a ON cs.id = a.constantSetId
+            JOIN runRanges rr ON a.runRangeId = rr.id
+            LEFT JOIN variations v ON a.variationId = v.id
+            WHERE d0.name = '{path_parts[0]}'
+            AND v.name IS 'default'
+            ORDER BY rr.runMin, a.created
+            """
+        cursor.execute(query)
+        res = cursor.fetchall()
+        res_table = {}
+        for n_columns, run_min, run_max, vault, timestamp in res:
+            # We do this because some of the tables have ridiculous run ranges
+            run_min = max(run_min, RUN_RANGES['s17'][0])
+            run_max = min(run_max, RUN_RANGES['s20'][1])
+            ts = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+            run_period = get_run_period_bound(run_min)
+            if run_period is None:
+                continue
+            max_timestamp = REST_VERSION_TIMESTAMPS[run_period]
+            if ts <= max_timestamp or use_timestamp is False:
+                data = vault.split('|')
+                table = [
+                    data[i : i + n_columns] for i in range(0, len(data), n_columns)
+                ]
+                for run in range(run_min, run_max + 1):
+                    res_table[run] = table
+        return res_table
+
+
+def get_rcdb_text_condition(condition: str) -> dict[int, str]:
+    with sqlite3.connect(str(MISC_PATH / 'rcdb.sqlite')) as rcdb:
+        cursor = rcdb.cursor()
+        query = f"""
+        {RCDB_SELECTION_PREFIX}
+        SELECT r.number, c.text_value
+        FROM conditions c
+        JOIN condition_types ct ON c.condition_type_id = ct.id
+        JOIN runs r ON c.run_number = r.number
+        WHERE ct.name = '{condition}'
+        {RCDB_SELECTION_SUFFIX}
+        ORDER BY r.number
+        """
+        cursor.execute(query)
+        res = cursor.fetchall()
+        res_table = {}
+        for run_number, value in res:
+            res_table[run_number] = value
+        return res_table
+
+
+def get_all_polarized_run_numbers() -> list[int]:
+    with sqlite3.connect(str(MISC_PATH / 'rcdb.sqlite')) as rcdb:
+        cursor = rcdb.cursor()
+        query = f"""
+        {RCDB_SELECTION_PREFIX}
+        SELECT r.number
+        FROM runs r
+        WHERE r.number > 0
+        {RCDB_SELECTION_SUFFIX}
+        ORDER BY r.number
+        """
+        print(query)
+        cursor.execute(query)
+        return [r[0] for r in cursor.fetchall()]
+
+
+@dataclass
+class PSFluxTable:
+    df_scale: dict[int, float]
+    df_ps_accept: dict[int, tuple[float, float, float]]
+    df_photon_endpoint: dict[int, float]
+    df_tagm_tagged_flux_table: dict[int, list[list[str]]]
+    df_tagm_scaled_energy_table: dict[int, list[list[str]]]
+    df_tagh_tagged_flux_table: dict[int, list[list[str]]]
+    df_tagh_scaled_energy_table: dict[int, list[list[str]]]
+    df_photon_endpoint_calib: dict[int, float]
+    df_target_scattering_centers: dict[int, tuple[float, float]]
+
+
+def get_coherent_peak(run_number: int) -> tuple[float, float]:
+    if get_run_period(run_number) != 's20':
+        return (8.2, 8.8)
+    return (8.0, 8.6)

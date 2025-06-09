@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from numpy import pi
 from laddu import available_parallelism
@@ -244,3 +245,67 @@ _n_threads = available_parallelism()
 NUM_THREADS = (_n_threads - 1) // 2 if available_parallelism() > 2 else 1
 GUIDED_MAX_STEPS = 250
 NBOOT = 30
+
+# These are dates in the month after the last calibration update for each REST version
+REST_VERSION_TIMESTAMPS = {
+    's17': datetime(2018, 12, 1),
+    's18': datetime(2019, 8, 1),
+    'f18': datetime(2019, 11, 1),
+    's20': datetime(2022, 6, 1),
+}
+
+RCDB_SELECTION_PREFIX = """
+WITH status AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'status' AND c.int_value = 1
+), run_type AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'run_type' AND c.text_value IN ('hd_all.tsg', 'hd_all.tsg_ps', 'hd_all.bcal_fcal_st.tsg')
+OR NOT run_number BETWEEN 30000 AND 39999
+), beam_current AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'beam_current' AND c.float_value > 2.0
+), event_count AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'event_count' AND ((c.int_value > 500000 AND run_number BETWEEN 30000 AND 39999) OR (c.int_value > 10000000 AND run_number BETWEEN 40000 AND 59999) OR (c.int_value > 5000000 AND run_number BETWEEN 71275 AND 79999))
+), solenoid_current AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'solenoid_current' AND c.float_value > 100.0
+), collimator_diameter AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'collimator_diameter' AND c.text_value != 'Blocking'
+), polarized AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'polarization_angle' AND c.float_value >= 0.0
+), daq_run AS (
+SELECT run_number
+FROM conditions c
+JOIN condition_types ct ON c.condition_type_id = ct.id
+WHERE ct.name = 'daq_run' AND ((run_number BETWEEN 30000 AND 39999) OR (c.text_value = 'PHYSICS' AND run_number BETWEEN 40000 AND 59999) OR (c.text_value = 'PHYSICS_DIRC' AND run_number BETWEEN 71275 AND 79999))
+)
+"""
+
+RCDB_SELECTION_SUFFIX = """
+AND r.number IN (SELECT run_number FROM status)
+AND r.number IN (SELECT run_number from run_type)
+AND r.number IN (SELECT run_number from beam_current)
+AND r.number IN (SELECT run_number from event_count)
+AND r.number IN (SELECT run_number from solenoid_current)
+AND r.number IN (SELECT run_number from collimator_diameter)
+AND r.number IN (SELECT run_number from polarized)
+AND r.number IN (SELECT run_number from daq_run)
+"""

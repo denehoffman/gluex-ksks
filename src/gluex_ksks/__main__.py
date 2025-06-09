@@ -12,6 +12,7 @@ from gluex_ksks.tasks.fits import (
     ProcessBinned,
     ProcessUnbinned,
 )
+from gluex_ksks.tasks.flux import PlotFlux
 from gluex_ksks.tasks.plot import PlotAll, PlotDetectors, PlotAltHypos
 from gluex_ksks.tasks.splot import SPlotReport
 from gluex_ksks.wave import Wave
@@ -49,6 +50,7 @@ def main(chisqdof: float):
         log_path=LOG_PATH / 'all.log',
     )
     tasks = [
+        PlotFlux(),
         MakeAuxiliaryPlots(),
         *[
             PlotDetectors(
