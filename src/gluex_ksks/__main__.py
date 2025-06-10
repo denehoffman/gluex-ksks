@@ -45,7 +45,7 @@ def main(chisqdof: float):
         )
     tq = TaskQueue(
         workers=ld.available_parallelism(),
-        resources={'fit': MAX_FITS},
+        resources={'fit': MAX_FITS, 'fitplot': 1},
         state_file_path=state_file_path,
         log_path=LOG_PATH / 'all.log',
     )

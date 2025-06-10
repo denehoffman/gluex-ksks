@@ -1053,17 +1053,21 @@ class PlotUnbinnedFit(Task):
             f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}',
             inputs=inputs,
             outputs=outputs,
+            resources={'fitplot': 1},
             log_directory=LOG_PATH,
         )
 
     @override
     def run(self) -> None:
+        self.logger.info('Starting plot')
         unbinned_fit_result: UnbinnedFitResult = pickle.load(
             self.inputs[0].outputs[0].open('rb')
         )
+        self.logger.info('Loaded fit result')
         binning = Binning(self.nbins, MESON_MASS_RANGE)
         data_hist = unbinned_fit_result.get_data_histogram(binning)
         fit_hists = unbinned_fit_result.get_histograms(binning)
+        self.logger.info('Computed histograms')
         plt.style.use('gluex_ksks.thesis')
         if Wave.needs_full_plot(self.waves):
             fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
@@ -1332,23 +1336,27 @@ class PlotUnbinnedAndBinnedFit(Task):
             f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
+            resources={'fitplot': 1},
             log_directory=LOG_PATH,
         )
 
     @override
     def run(self) -> None:
+        self.logger.info('Beginning plot')
         binned_fit_result: BinnedFitResultUncertainty = pickle.load(
             self.inputs[0].outputs[0].open('rb')
         )
         unbinned_fit_result: UnbinnedFitResult = pickle.load(
             self.inputs[1].outputs[0].open('rb')
         )
+        self.logger.info('Loaded fit results')
         data_hist = binned_fit_result.fit_result.get_data_histogram()
         binned_fit_hists = binned_fit_result.fit_result.get_histograms()
         binned_fit_error_bars = binned_fit_result.get_error_bars()
         unbinned_fit_hists = unbinned_fit_result.get_histograms(
             binned_fit_result.fit_result.binning
         )
+        self.logger.info('Calculated histograms')
         plt.style.use('gluex_ksks.thesis')
         if Wave.needs_full_plot(self.waves):
             fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
