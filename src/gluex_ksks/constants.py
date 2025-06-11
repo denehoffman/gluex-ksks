@@ -161,23 +161,61 @@ BEAM_ENERGY_BINS = 120
 P_RANGE = (0.0, 10.0)
 P_BINS = 500
 
-BETA_RANGE = (-0.2, 1.2)
-BETA_BINS = 400
+BETA_RANGE = {
+    'PiPlus1': (0.4, 1.3),
+    'PiMinus1': (0.4, 1.3),
+    'PiPlus2': (0.4, 1.3),
+    'PiMinus2': (0.4, 1.3),
+    'Proton': (0.2, 1.2),
+}
+BETA_BINS = {
+    'PiPlus1': 260,
+    'PiMinus1': 260,
+    'PiPlus2': 260,
+    'PiMinus2': 260,
+    'Proton': 320,
+}
+
 
 DELTA_BETA_RANGE = (-1.0, 1.0)
 DELTA_BETA_BINS = 400
 
-DELTA_T_RANGE = (-10.0, 10.0)
-DELTA_T_BINS = 500
+DELTA_T_RANGE = (-2.7, 2.7)
+DELTA_T_BINS = 135
 
-DEDX_RANGE = (0.0, 25.0)
-DEDX_BINS = 250
+DEDX_RANGE = {
+    'PiPlus1': (0.0, 7.0),
+    'PiMinus1': (0.0, 7.0),
+    'PiPlus2': (0.0, 7.0),
+    'PiMinus2': (0.0, 7.0),
+    'Proton': (0.0, 25.0),
+}
+DEDX_BINS = {
+    'PiPlus1': 70,
+    'PiMinus1': 70,
+    'PiPlus2': 70,
+    'PiMinus2': 70,
+    'Proton': 250,
+}
 
 DETECTOR_THETA_DEG_RANGE = {'BCAL': (10.0, 140.0), 'FCAL': (0.0, 12.0)}
 DETECTOR_THETA_DEG_BINS = {'BCAL': 260, 'FCAL': 120}
 
-E_OVER_P_RANGE = (0.0, 4.0)
-E_OVER_P_BINS = 200
+E_OVER_P_RANGE = {
+    'PiPlus1': (0.0, 2.0),
+    'PiMinus1': (0.0, 2.0),
+    'PiPlus2': (0.0, 2.0),
+    'PiMinus2': (0.0, 2.0),
+    'Proton': (0.0, 1.0),
+}
+
+E_OVER_P_BINS = {
+    'PiPlus1': 100,
+    'PiMinus1': 100,
+    'PiPlus2': 100,
+    'PiMinus2': 100,
+    'Proton': 50,
+}
 
 
 @dataclass

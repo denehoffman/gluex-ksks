@@ -6,7 +6,7 @@ font.family: serif
 font.size: 10.0
 # LaTeX
 text.usetex: True
-text.latex.preamble: \usepackage{amsmath}\usepackage{amssymb}\usepackage{physics}
+text.latex.preamble: \usepackage{amsmath}\usepackage{amssymb}\usepackage{physics}\usepackage{libertine}\usepackage{libertinust1math}
 # Axes
 axes.formatter.use_mathtext: True
 axes.formatter.limits: -3, 3

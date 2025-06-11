@@ -19,6 +19,8 @@ from gluex_ksks.constants import (
     COSTHETA_RANGE,
     DEDX_BINS,
     DEDX_RANGE,
+    DELTA_BETA_BINS,
+    DELTA_BETA_RANGE,
     DELTA_T_BINS,
     DELTA_T_RANGE,
     DETECTOR_THETA_DEG_BINS,
@@ -1571,7 +1573,10 @@ class PlotBetaVP(DetectorPlotTask):
         self.detector = detector
         super().__init__(
             f'beta_v_p_{str(detector).lower()}_{str(particle).lower()}',
-            f'beta_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            [
+                f'beta_v_p_{str(detector).lower()}_{str(particle).lower()}',
+                f'delta_beta_v_p_{str(detector).lower()}_{str(particle).lower()}',
+            ],
             data_type=data_type,
             protonz_cut=protonz_cut,
             mass_cut=mass_cut,
@@ -1586,20 +1591,30 @@ class PlotBetaVP(DetectorPlotTask):
         self.log_plot_start()
         beta_column = f'{self.particle}_Beta_{self.detector}'
         p_column = f'{self.particle}_P'
-        df_data = (
-            self.read_inputs()
-            .select(beta_column, p_column, 'weight')
-            .filter(pl.col(beta_column).ne(0.0))
-            .collect()
-        )
+        e_column = f'{self.particle}_E_{self.detector}'
+        if self.detector != 'TOF':
+            df_data = (
+                self.read_inputs()
+                .select(beta_column, p_column, e_column, 'weight')
+                .filter(pl.col(beta_column).ne(0.0))
+                .filter(pl.col(e_column).ne(0.0))
+                .collect()
+            )
+        else:
+            df_data = (
+                self.read_inputs()
+                .select(beta_column, p_column, 'weight')
+                .filter(pl.col(beta_column).ne(0.0))
+                .collect()
+            )
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         _, _, _, im = ax.hist2d(
             df_data[p_column],
             df_data[beta_column],
             weights=df_data['weight'],
-            bins=(P_BINS, BETA_BINS),
-            range=(P_RANGE, BETA_RANGE),
+            bins=(P_BINS, BETA_BINS[self.particle]),
+            range=(P_RANGE, BETA_RANGE[self.particle]),
             cmap=CMAP,
             norm=NORM,
         )
@@ -1607,6 +1622,32 @@ class PlotBetaVP(DetectorPlotTask):
         ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
         ax.set_ylabel(rf'{self.detector} $\beta$')
         plt.savefig(self.outputs[0])
+        plt.close()
+
+        _, ax = plt.subplots()
+        if self.detector != 'TOF':
+            _, _, _, im = ax.hist2d(
+                df_data[p_column],
+                df_data[p_column] / df_data[e_column] - df_data[beta_column],
+                weights=df_data['weight'],
+                bins=(P_BINS, DELTA_BETA_BINS),
+                range=(P_RANGE, DELTA_BETA_RANGE),
+                cmap=CMAP,
+                norm=NORM,
+            )
+            plt.colorbar(im)
+        else:
+            ax.text(
+                0.5,
+                0.5,
+                r'No $\delta\beta$ Plot for TOF',
+                ha='center',
+                va='center',
+                transform=ax.transAxes,
+            )
+        ax.set_xlabel(f'${PARTICLE_TO_LATEX[self.particle]}$ Momentum (GeV/c)')
+        ax.set_ylabel(rf'{self.detector} $\Delta\beta$')
+        plt.savefig(self.outputs[1])
         plt.close()
         self.log_plot_end()
 
@@ -1656,8 +1697,8 @@ class PlotDEDXVP(DetectorPlotTask):
             df_data[p_column],
             df_data[dedx_column],
             weights=df_data['weight'],
-            bins=(P_BINS, DEDX_BINS),
-            range=(P_RANGE, DEDX_RANGE),
+            bins=(P_BINS, DEDX_BINS[self.particle]),
+            range=(P_RANGE, DEDX_RANGE[self.particle]),
             cmap=CMAP,
             norm=NORM,
         )
@@ -1718,8 +1759,8 @@ class PlotEoverPVPandTheta(DetectorPlotTask):
             df_data[p_column],
             df_data[e_column] / df_data[p_column],
             weights=df_data['weight'],
-            bins=(P_BINS, E_OVER_P_BINS),
-            range=(P_RANGE, E_OVER_P_RANGE),
+            bins=(P_BINS, E_OVER_P_BINS[self.particle]),
+            range=(P_RANGE, E_OVER_P_RANGE[self.particle]),
             cmap=CMAP,
             norm=NORM,
         )
@@ -1734,8 +1775,11 @@ class PlotEoverPVPandTheta(DetectorPlotTask):
             df_data[theta_column] * 180 / np.pi,
             df_data[e_column] / df_data[p_column],
             weights=df_data['weight'],
-            bins=(DETECTOR_THETA_DEG_BINS[self.detector], E_OVER_P_BINS),
-            range=(DETECTOR_THETA_DEG_RANGE[self.detector], E_OVER_P_RANGE),
+            bins=(DETECTOR_THETA_DEG_BINS[self.detector], E_OVER_P_BINS[self.particle]),
+            range=(
+                DETECTOR_THETA_DEG_RANGE[self.detector],
+                E_OVER_P_RANGE[self.particle],
+            ),
             cmap=CMAP,
             norm=NORM,
         )
