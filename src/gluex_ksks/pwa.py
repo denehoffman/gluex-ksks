@@ -638,7 +638,7 @@ def fit_unbinned(
             else rng.uniform(-init_mag, init_mag, len(nll.parameters))
         )
         status = nll.minimize(
-            list(p_init),
+            [float(p) for p in p_init],
             observers=[LoggingObserver(logger)],
             threads=threads,
             skip_hessian=True,
@@ -781,7 +781,7 @@ class BinnedFitResultUncertainty:
                             np.concatenate(
                                 [
                                     nll.project_with(
-                                        list(sample),
+                                        [float(p) for p in sample],
                                         Wave.get_waveset_names(
                                             waveset,
                                             mass_dependent=False,
@@ -1049,7 +1049,7 @@ def fit_guided(
             else rng.uniform(-init_mag, init_mag, len(nll.parameters))
         )
         status = nll.minimize(
-            list(p_init),
+            [float(p) for p in p_init],
             observers=GuidedLoggingObserver(
                 masses,
                 [accmc_dataset.n_events_weighted for accmc_dataset in accmc_datasets],

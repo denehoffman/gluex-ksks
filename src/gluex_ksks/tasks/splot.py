@@ -74,7 +74,9 @@ def run_splot_fit(
             + np.sum(
                 [
                     yields_bkg[i]
-                    * exp_pdf(rfl1=arrays_data.rfl1, rfl2=arrays_data.rfl2, lda=ldas[i])
+                    * exp_pdf(
+                        rfl1=arrays_data.rfl1, rfl2=arrays_data.rfl2, lda=float(ldas[i])
+                    )
                     for i in range(nspec)
                 ],
                 axis=0,
@@ -232,9 +234,14 @@ class SPlotFit(Task):
 
     @override
     def run(self) -> None:
-        self.logger.info(
-            f'Running sPlot fit (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
-        )
+        if self.outputs[0].exists():
+            self.logger.info(
+                f'Skipping sPlot fit (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            )
+        else:
+            self.logger.info(
+                f'Running sPlot fit (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            )
         arrays_data = SPlotArrays.from_polars(
             add_m_meson(
                 pl.concat(
@@ -276,15 +283,18 @@ class SPlotFit(Task):
             ),
             control='m_meson',
         )
-        fit_result = run_splot_fit(
-            arrays_data,
-            arrays_sigmc,
-            arrays_bkgmc,
-            nspec=self.nspec,
-            fixed=self.fixed,
-            logger=self.logger,
-        )
-        pickle.dump(fit_result, self.outputs[0].open('wb'))
+        if not self.outputs[0].exists():
+            fit_result = run_splot_fit(
+                arrays_data,
+                arrays_sigmc,
+                arrays_bkgmc,
+                nspec=self.nspec,
+                fixed=self.fixed,
+                logger=self.logger,
+            )
+            pickle.dump(fit_result, self.outputs[0].open('wb'))
+        else:
+            fit_result = pickle.load(self.outputs[0].open('rb'))
 
         if self.fixed:
             par_names = ['s'] + [f'b{i + 1}' for i in range(self.nspec)]
@@ -314,7 +324,7 @@ class SPlotFit(Task):
             else:
                 normalized_name = rf'Background $\lambda$ $\#{par_name[1:]}$'
             output_str += f"""
-            {normalized_name} & {to_latex(value, error)} \\\\"""
+            {normalized_name} & {to_latex(float(value), float(error))} \\\\"""
         output_str += rf"""\bottomrule
         \end{{tabular}}
         \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {num2words(self.nspec)} {self.method} background slope{'s' if self.nspec > 1 else ''}. Uncertainties are calculated using the covariance matrix of the fit.{r' All $\lambda$ parameters have units of $\si{\nano\second}^{-1}$.' if self.method == 'free' else ''}}}\label{{tab:splot-fit-results-chisqdof-{self.chisqdof:.2f}-{self.method}-{self.nspec}}}

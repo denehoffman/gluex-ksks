@@ -182,9 +182,14 @@ class FactorizationFit(Task):
 
     @override
     def run(self) -> None:
-        self.logger.info(
-            f'Running factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
-        )
+        if self.outputs[0].exists():
+            self.logger.info(
+                f'Skipping factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            )
+        else:
+            self.logger.info(
+                f'Running factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            )
         arrays_data = SPlotArrays.from_polars(
             add_m_meson(
                 pl.concat(
@@ -226,14 +231,17 @@ class FactorizationFit(Task):
             ),
             control='m_meson',
         )
-        fit_result = run_factorization_fits(
-            arrays_data,
-            arrays_sigmc,
-            arrays_bkgmc,
-            nspec=self.nspec,
-            logger=self.logger,
-        )
-        pickle.dump(fit_result, self.outputs[0].open('wb'))
+        if not self.outputs[0].exists():
+            fit_result = run_factorization_fits(
+                arrays_data,
+                arrays_sigmc,
+                arrays_bkgmc,
+                nspec=self.nspec,
+                logger=self.logger,
+            )
+            pickle.dump(fit_result, self.outputs[0].open('wb'))
+        else:
+            fit_result: FactorizationResult = pickle.load(self.outputs[0].open('rb'))
         quantile_edges = get_quantile_edges(
             arrays_data.control, bins=self.nspec, weights=arrays_data.weight
         )
