@@ -281,6 +281,7 @@ MESON_PARTICLES = [
 MAX_FITS = 2
 _n_threads = available_parallelism()
 NUM_THREADS = (_n_threads - 1) // 2 if available_parallelism() > 2 else 1
+N_WORKERS = min(available_parallelism() // 4, 12)
 GUIDED_MAX_STEPS = 250
 NBOOT = 30
 

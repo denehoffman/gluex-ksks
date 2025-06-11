@@ -1,6 +1,13 @@
 from modak import TaskQueue
 
-from gluex_ksks.constants import MAX_FITS, NBOOT, STATE_PATH, mkdirs, LOG_PATH
+from gluex_ksks.constants import (
+    MAX_FITS,
+    N_WORKERS,
+    NBOOT,
+    STATE_PATH,
+    mkdirs,
+    LOG_PATH,
+)
 import laddu as ld
 from itertools import product
 
@@ -44,7 +51,7 @@ def main(chisqdof: float):
             state_file_path.name + f'-{chisqdof:.2f}'
         )
     tq = TaskQueue(
-        workers=ld.available_parallelism(),
+        workers=N_WORKERS,
         resources={'fit': MAX_FITS, 'fitplot': 1},
         state_file_path=state_file_path,
         log_path=LOG_PATH / 'all.log',
