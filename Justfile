@@ -19,5 +19,11 @@ log-reset:
 run chisqdof='3.00' queue='blue':
   sbatch slurm_job.sh {{chisqdof}} --partition={{queue}}
 
+run-all queue='blue':
+  sbatch slurm_job.sh 2.00 --partition={{queue}}
+  sbatch slurm_job.sh 3.00 --partition={{queue}}
+  sbatch slurm_job.sh 4.00 --partition={{queue}}
+  sbatch slurm_job.sh 5.00 --partition={{queue}}
+
 tail:
   tail -f analysis/logs/all.log

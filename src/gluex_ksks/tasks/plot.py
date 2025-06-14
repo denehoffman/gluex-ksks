@@ -1280,9 +1280,9 @@ class PlotMECombined(CombinedPlotTask):
             label=r'$4\pi$ MC',
         )
         ax.set_ylim(0)
-        ax.set_xlabel(r'Missing Energy ($\text{{GeV}}^2$)')
+        ax.set_xlabel(r'Missing Energy ($\text{{GeV}}$)')
         bin_width = round((ME_RANGE[1] - ME_RANGE[0]) / ME_BINS, 3)
-        ax.set_ylabel(rf'Normalized Counts / {bin_width} ($\text{{GeV}}^2$)')
+        ax.set_ylabel(rf'Normalized Counts / {bin_width} ($\text{{GeV}}$)')
         ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()
