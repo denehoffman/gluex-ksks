@@ -254,9 +254,9 @@ class PlotBGGEN(Task):
                 'Other',
             ],
         )
-        ax.set_xlabel(r'Missing Energy ($\text{{GeV}}^2$)')
+        ax.set_xlabel(r'Missing Energy ($\text{{GeV}}$)')
         bin_width = round((ME_RANGE[1] - ME_RANGE[0]) / ME_BINS, 3)
-        ax.set_ylabel(rf'Counts / {bin_width} ($\text{{GeV}}^2$)')
+        ax.set_ylabel(rf'Counts / {bin_width} ($\text{{GeV}}$)')
         ax.set_ylim(1)
         ax.set_yscale('log')
         ax.legend()
