@@ -1147,6 +1147,7 @@ class PlotRFLCombined(CombinedPlotTask):
         ax.set_xlabel(r'$K_S^0$ Rest Frame Lifetime (ns)')
         bin_width = int((RFL_RANGE[1] - RFL_RANGE[0]) / RFL_BINS * 1000)
         ax.set_ylabel(f'Normalized Counts / {bin_width} (ps)')
+        ax.set_yscale('log')
         ax.legend()
         plt.savefig(self.outputs[0])
         plt.close()

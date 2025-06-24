@@ -28,7 +28,7 @@ ytick.minor.visible: True
 # Legend
 # legend.fancybox: False
 legend.frameon: True
-legend.fontsize: 6
+legend.fontsize: 12
 # Figure
 figure.autolayout: True
 # full width in pdf = 469.75502pt = 6.5in, 6.5/golden_ratio = 4.0
