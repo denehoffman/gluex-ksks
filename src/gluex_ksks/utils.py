@@ -795,7 +795,8 @@ def to_latex(value: float, unc: float | None = None) -> str:
 
 def custom_colormap() -> tuple[ListedColormap, CenteredNorm]:
     n = 256
-    pos = plt.get_cmap('afmhot_r', n)
+    # pos = plt.get_cmap('afmhot_r', n)
+    pos = plt.get_cmap('inferno', n)
     neg = plt.get_cmap('GnBu', n)
 
     n_neg = 128
