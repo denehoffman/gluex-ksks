@@ -440,28 +440,28 @@ Bool_t DSelector_phase_2::Process(Long64_t locEntry) {
         dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_3_Pz", locDecayingKShort2P4.Pz());
 
         // Fill Flat P4_4 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_E", locPiPlus1P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Px", locPiPlus1P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Py", locPiPlus1P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Pz", locPiPlus1P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_E", locPiPlus1P4_Measured.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Px", locPiPlus1P4_Measured.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Py", locPiPlus1P4_Measured.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_4_Pz", locPiPlus1P4_Measured.Pz());
 
         // Fill Flat P4_5 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_E", locPiMinus1P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Px", locPiMinus1P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Py", locPiMinus1P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Pz", locPiMinus1P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_E", locPiMinus1P4_Measured.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Px", locPiMinus1P4_Measured.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Py", locPiMinus1P4_Measured.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_5_Pz", locPiMinus1P4_Measured.Pz());
 
         // Fill Flat P4_6 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_E", locPiPlus2P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Px", locPiPlus2P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Py", locPiPlus2P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Pz", locPiPlus2P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_E", locPiPlus2P4_Measured.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Px", locPiPlus2P4_Measured.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Py", locPiPlus2P4_Measured.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_6_Pz", locPiPlus2P4_Measured.Pz());
 
         // Fill Flat P4_7 branches
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_E", locPiMinus2P4.E());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Px", locPiMinus2P4.Px());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Py", locPiMinus2P4.Py());
-        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Pz", locPiMinus2P4.Pz());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_E", locPiMinus2P4_Measured.E());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Px", locPiMinus2P4_Measured.Px());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Py", locPiMinus2P4_Measured.Py());
+        dFlatTreeInterface->Fill_Fundamental<Float_t>("p4_7_Pz", locPiMinus2P4_Measured.Pz());
 
 
         // Fill Flat Missing Energy/Momentum^2 branches

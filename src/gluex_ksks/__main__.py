@@ -63,6 +63,7 @@ def main(chisqdof: float):
             PlotDetectors(
                 data_type=data_type,
                 protonz_cut=False,
+                dedx_cut=False,
                 mass_cut=False,
                 chisqdof=None,
                 select_mesons=None,
@@ -75,6 +76,7 @@ def main(chisqdof: float):
             PlotAltHypos(
                 data_type=data_type,
                 protonz_cut=False,
+                dedx_cut=False,
                 mass_cut=False,
                 chisqdof=None,
                 select_mesons=None,
@@ -87,33 +89,44 @@ def main(chisqdof: float):
             PlotAll(
                 data_type='data',
                 protonz_cut=cuts[0],
-                mass_cut=cuts[1],
-                chisqdof=cuts[2],
-                select_mesons=cuts[3],
+                dedx_cut=cuts[1],
+                mass_cut=cuts[2],
+                chisqdof=cuts[3],
+                select_mesons=cuts[4],
                 method=None,
                 nspec=None,
             )
             for cuts in list(
                 product(
-                    [True, False], [True, False], [None, chisqdof], [True, False, None]
+                    [True, False],
+                    [True, False],
+                    [True, False],
+                    [None, chisqdof],
+                    [True, False, None],
                 )
             )
         ],
         *[
             PlotBGGEN(
                 protonz_cut=cuts[0],
-                mass_cut=cuts[1],
-                chisqdof=cuts[2],
-                select_mesons=cuts[3],
+                dedx_cut=cuts[1],
+                mass_cut=cuts[2],
+                chisqdof=cuts[3],
+                select_mesons=cuts[4],
             )
             for cuts in list(
                 product(
-                    [True, False], [True, False], [None, chisqdof], [True, False, None]
+                    [True, False],
+                    [True, False],
+                    [True, False],
+                    [None, chisqdof],
+                    [True, False, None],
                 )
             )
         ],
         FactorizationReport(
             protonz_cut=True,
+            dedx_cut=True,
             mass_cut=True,
             chisqdof=chisqdof,
             select_mesons=True,
@@ -121,6 +134,7 @@ def main(chisqdof: float):
         ),
         SPlotReport(
             protonz_cut=True,
+            dedx_cut=True,
             mass_cut=True,
             chisqdof=chisqdof,
             select_mesons=True,
@@ -129,6 +143,7 @@ def main(chisqdof: float):
         *[
             ProcessBinned(
                 protonz_cut=True,
+                dedx_cut=True,
                 mass_cut=True,
                 chisqdof=chisqdof,
                 select_mesons=True,
@@ -141,6 +156,7 @@ def main(chisqdof: float):
         *[
             ProcessUnbinned(
                 protonz_cut=True,
+                dedx_cut=True,
                 mass_cut=True,
                 chisqdof=chisqdof,
                 select_mesons=True,
@@ -157,6 +173,7 @@ def main(chisqdof: float):
             [
                 PlotCLASComparison(
                     protonz_cut=True,
+                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -168,6 +185,7 @@ def main(chisqdof: float):
                 PlotAll(
                     data_type='data',
                     protonz_cut=True,
+                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -178,6 +196,7 @@ def main(chisqdof: float):
                     PlotDetectors(
                         data_type=data_type,
                         protonz_cut=True,
+                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=True,
@@ -190,6 +209,7 @@ def main(chisqdof: float):
                     PlotAltHypos(
                         data_type=data_type,
                         protonz_cut=True,
+                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=True,
@@ -201,6 +221,7 @@ def main(chisqdof: float):
                 PlotAll(
                     data_type='data',
                     protonz_cut=True,
+                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -210,6 +231,7 @@ def main(chisqdof: float):
                 PlotDetectors(
                     data_type='data',
                     protonz_cut=True,
+                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -219,6 +241,7 @@ def main(chisqdof: float):
                 PlotAltHypos(
                     data_type='data',
                     protonz_cut=True,
+                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -228,6 +251,7 @@ def main(chisqdof: float):
                 *[
                     ProcessBinned(
                         protonz_cut=True,
+                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=None,
@@ -240,6 +264,7 @@ def main(chisqdof: float):
                 *[
                     ProcessUnbinned(
                         protonz_cut=True,
+                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=None,

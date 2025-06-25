@@ -716,6 +716,8 @@ def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
         piplus2_lab = ld.Vec4(piplus2_px, piplus2_py, piplus2_pz, piplus2_e)
         piminus2_lab = ld.Vec4(piminus2_px, piminus2_py, piminus2_pz, piminus2_e)
         return {
+            'piplus1_piminus1_m': (piplus1_lab + piminus1_lab).m,
+            'piplus2_piminus2_m': (piplus2_lab + piminus2_lab).m,
             'piplus1_piminus2_m': (piplus1_lab + piminus2_lab).m,
             'piplus2_piminus1_m': (piplus2_lab + piminus1_lab).m,
             'p_piplus1_m': (p_lab + piplus1_lab).m,
@@ -756,6 +758,8 @@ def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
             process,
             return_dtype=pl.Struct(
                 {
+                    'piplus1_piminus1_m': pl.Float64,
+                    'piplus2_piminus2_m': pl.Float64,
                     'piplus1_piminus2_m': pl.Float64,
                     'piplus2_piminus1_m': pl.Float64,
                     'p_piplus1_m': pl.Float64,
@@ -795,8 +799,7 @@ def to_latex(value: float, unc: float | None = None) -> str:
 
 def custom_colormap() -> tuple[ListedColormap, CenteredNorm]:
     n = 256
-    # pos = plt.get_cmap('afmhot_r', n)
-    pos = plt.get_cmap('inferno', n)
+    pos = plt.get_cmap('afmhot_r', n)
     neg = plt.get_cmap('GnBu', n)
 
     n_neg = 128

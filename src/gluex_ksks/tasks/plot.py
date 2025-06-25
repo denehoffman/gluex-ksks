@@ -81,6 +81,7 @@ class PlotTask(Task):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -90,6 +91,7 @@ class PlotTask(Task):
     ):
         self.data_type = data_type
         self.protonz_cut = protonz_cut
+        self.dedx_cut = dedx_cut
         self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
@@ -101,6 +103,7 @@ class PlotTask(Task):
                     data_type=data_type,
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -114,6 +117,7 @@ class PlotTask(Task):
                 SPlotWeights(
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -129,10 +133,10 @@ class PlotTask(Task):
             output_names = [output_names]
         outputs = [
             PLOTS_PATH
-            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.png'
+            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.png'
             for name in output_names
         ]
-        task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
+        task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
         self.short_name = name
         super().__init__(
             name=task_name,
@@ -156,12 +160,12 @@ class PlotTask(Task):
         self,
     ) -> None:
         self.logger.info(
-            f'Plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
 
     def log_plot_end(self) -> None:
         self.logger.info(
-            f'Finished plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Finished plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
 
 
@@ -173,6 +177,7 @@ class DetectorPlotTask(Task):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -182,6 +187,7 @@ class DetectorPlotTask(Task):
     ):
         self.data_type = data_type
         self.protonz_cut = protonz_cut
+        self.dedx_cut = dedx_cut
         self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
@@ -193,6 +199,7 @@ class DetectorPlotTask(Task):
                     data_type=data_type,
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -206,6 +213,7 @@ class DetectorPlotTask(Task):
                 SPlotWeights(
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -221,10 +229,10 @@ class DetectorPlotTask(Task):
             output_names = [output_names]
         outputs = [
             PLOTS_PATH
-            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.png'
+            / f'{name}_{data_type}{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}.png'
             for name in output_names
         ]
-        task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
+        task_name = f'plot_{name}_{data_type}{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{method}_{nspec}'
         self.short_name = name
         super().__init__(
             name=task_name,
@@ -248,12 +256,12 @@ class DetectorPlotTask(Task):
         self,
     ) -> None:
         self.logger.info(
-            f'Plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
 
     def log_plot_end(self) -> None:
         self.logger.info(
-            f'Finished plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Finished plotting {self.short_name} for {self.data_type} (method={self.method}, nspec={self.nspec}) with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
 
 
@@ -264,12 +272,14 @@ class CombinedPlotTask(Task):
         output_names: str | list[str],
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         **kwargs,
     ):
         self.protonz_cut = protonz_cut
+        self.dedx_cut = dedx_cut
         self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
@@ -279,6 +289,7 @@ class CombinedPlotTask(Task):
                     data_type='data',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -290,6 +301,7 @@ class CombinedPlotTask(Task):
                     data_type='sigmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -301,6 +313,7 @@ class CombinedPlotTask(Task):
                     data_type='bkgmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
+                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -313,10 +326,10 @@ class CombinedPlotTask(Task):
             output_names = [output_names]
         outputs = [
             PLOTS_PATH
-            / f'{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}.png'
+            / f'{name}_combined{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}.png'
             for name in output_names
         ]
-        task_name = f'plot_{name}_combined{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}'
+        task_name = f'plot_{name}_combined{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{self.tag}_{None}_{None}'
         self.short_name = name
         super().__init__(
             name=task_name,
@@ -358,12 +371,12 @@ class CombinedPlotTask(Task):
         self,
     ) -> None:
         self.logger.info(
-            f'Plotting {self.short_name} for combined datasets with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Plotting {self.short_name} for combined datasets with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
 
     def log_plot_end(self) -> None:
         self.logger.info(
-            f'Finished plotting {self.short_name} for combined datasets with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+            f'Finished plotting {self.short_name} for combined datasets with pz={self.protonz_cut},dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
         )
 
 
@@ -373,6 +386,7 @@ class PlotMesonMass(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -384,6 +398,7 @@ class PlotMesonMass(PlotTask):
             ['meson_mass', 'ksb_costheta_v_meson_mass', 'meson_pdg'],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -519,6 +534,7 @@ class PlotBaryonMass(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -530,6 +546,7 @@ class PlotBaryonMass(PlotTask):
             ['baryon_mass', 'ksb_costheta_v_baryon_mass'],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -601,6 +618,7 @@ class PlotAngles(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -612,6 +630,7 @@ class PlotAngles(PlotTask):
             ['costheta_hx_v_meson_mass', 'phi_hx_v_meson_mass'],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -673,6 +692,7 @@ class PlotRF(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -684,6 +704,7 @@ class PlotRF(PlotTask):
             ['rf_weighted', 'rf_unweighted'],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -750,6 +771,7 @@ class PlotChiSqDOF(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -761,6 +783,7 @@ class PlotChiSqDOF(PlotTask):
             'chisqdof',
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -805,6 +828,7 @@ class PlotChiSqDOFCombined(CombinedPlotTask):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -813,6 +837,7 @@ class PlotChiSqDOFCombined(CombinedPlotTask):
             'chisqdof',
             'chisqdof',
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -873,6 +898,7 @@ class PlotYoudenJAndROC(CombinedPlotTask):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -881,6 +907,7 @@ class PlotYoudenJAndROC(CombinedPlotTask):
             'chisqdof_youdenj_and_roc',
             ['chisqdof_youdenj', 'chisqdof_roc'],
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -967,6 +994,7 @@ class PlotProtonZ(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -978,6 +1006,7 @@ class PlotProtonZ(PlotTask):
             'protonz',
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1022,6 +1051,7 @@ class PlotProtonZCombined(CombinedPlotTask):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1030,6 +1060,7 @@ class PlotProtonZCombined(CombinedPlotTask):
             'protonz',
             'protonz',
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1090,6 +1121,7 @@ class PlotRFLCombined(CombinedPlotTask):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1098,6 +1130,7 @@ class PlotRFLCombined(CombinedPlotTask):
             'rfl',
             'rfl',
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1158,6 +1191,7 @@ class PlotMM2Combined(CombinedPlotTask):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1166,6 +1200,7 @@ class PlotMM2Combined(CombinedPlotTask):
             'mm2',
             'mm2',
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1226,6 +1261,7 @@ class PlotMECombined(CombinedPlotTask):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1234,6 +1270,7 @@ class PlotMECombined(CombinedPlotTask):
             'me',
             'me',
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1295,6 +1332,7 @@ class PlotBeamEnergy(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1306,6 +1344,7 @@ class PlotBeamEnergy(PlotTask):
             'beam_energy',
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1353,6 +1392,7 @@ class PlotAltHypos(PlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1362,6 +1402,8 @@ class PlotAltHypos(PlotTask):
         super().__init__(
             'alt_hypos',
             [
+                'hypo_ks11',
+                'hypo_ks22',
                 'hypo_ks12',
                 'hypo_ks21',
                 'hypo_deltaplusplus1',
@@ -1373,10 +1415,12 @@ class PlotAltHypos(PlotTask):
                 'hypo_deltaplus21',
                 'hypo_deltaplus22',
                 'hypo_deltaminus',
+                'hypo_ks11_v_ks22',
                 'hypo_ks12_v_ks21',
             ],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1390,6 +1434,8 @@ class PlotAltHypos(PlotTask):
         df_data = (
             add_alt_hypos(self.read_inputs())
             .select(
+                'piplus1_piminus1_m',
+                'piplus2_piminus2_m',
                 'piplus1_piminus2_m',
                 'piplus2_piminus1_m',
                 'p_piplus1_m',
@@ -1407,6 +1453,8 @@ class PlotAltHypos(PlotTask):
         )
         self.logger.info('Read data, plotting...')
         column_names = [
+            'piplus1_piminus1_m',
+            'piplus2_piminus2_m',
             'piplus1_piminus2_m',
             'piplus2_piminus1_m',
             'p_piplus1_m',
@@ -1420,6 +1468,8 @@ class PlotAltHypos(PlotTask):
             'p_piminus1_piminus2_m',
         ]
         latex_particles_strings = [
+            r'\pi^+_1\pi^-_1',
+            r'\pi^+_2\pi^-_2',
             r'\pi^+_1\pi^-_2',
             r'\pi^+_2\pi^-_1',
             r'p \pi^+_1',
@@ -1433,6 +1483,8 @@ class PlotAltHypos(PlotTask):
             r'p \pi^-_1 \pi^-_2',
         ]
         ranges = [
+            (0.3, 0.7),
+            (0.3, 0.7),
             (0.25, 1.7),
             (0.25, 1.7),
             (1.0, 3.3),
@@ -1475,7 +1527,26 @@ class PlotAltHypos(PlotTask):
             ax.set_ylabel(f'Counts / {bin_width} (MeV)')
             plt.savefig(self.outputs[i])
             plt.close()
-        self.logger.info('Plotting 2d pi+pi- correlation')
+        self.logger.info('Plotting 2d pi+pi- correlation (correct)')
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        range_ = (0.3, 0.7)
+        bins = 200
+        _, _, _, im = ax.hist2d(
+            df_data['piplus1_piminus1_m'],
+            df_data['piplus2_piminus2_m'],
+            bins=(bins, bins),
+            range=(range_, range_),
+            weights=df_data['weight'],
+            cmap=CMAP,
+            norm=NORM,
+        )
+        plt.colorbar(im)
+        ax.set_xlabel(r'Invariant Mass of $\pi^+_1\pi^-_1$ (GeV/$c^2$)')
+        ax.set_ylabel(r'Invariant Mass of $\pi^+_2\pi^-_2$ (GeV/$c^2$)')
+        plt.savefig(self.outputs[-2])
+        plt.close()
+        self.logger.info('Plotting 2d pi+pi- correlation (incorrect)')
         plt.style.use('gluex_ksks.thesis')
         _, ax = plt.subplots()
         range_ = (0.25, 1.7)
@@ -1503,6 +1574,7 @@ class PlotDeltaTVP(DetectorPlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1518,6 +1590,7 @@ class PlotDeltaTVP(DetectorPlotTask):
             f'delta_t_v_p_{str(detector).lower()}_{str(particle).lower()}',
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1561,6 +1634,7 @@ class PlotBetaVP(DetectorPlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1579,6 +1653,7 @@ class PlotBetaVP(DetectorPlotTask):
             ],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1658,6 +1733,7 @@ class PlotDEDXVP(DetectorPlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1673,6 +1749,7 @@ class PlotDEDXVP(DetectorPlotTask):
             f'dedx_v_p_{str(detector).lower()}_{str(particle).lower()}',
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1716,6 +1793,7 @@ class PlotEoverPVPandTheta(DetectorPlotTask):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1734,6 +1812,7 @@ class PlotEoverPVPandTheta(DetectorPlotTask):
             ],
             data_type=data_type,
             protonz_cut=protonz_cut,
+            dedx_cut=dedx_cut,
             mass_cut=mass_cut,
             chisqdof=chisqdof,
             select_mesons=select_mesons,
@@ -1797,6 +1876,7 @@ class PlotDetectors(Task):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1806,6 +1886,7 @@ class PlotDetectors(Task):
         single_plot_kwargs = {
             'data_type': data_type,
             'protonz_cut': protonz_cut,
+            'dedx_cut': dedx_cut,
             'mass_cut': mass_cut,
             'chisqdof': chisqdof,
             'select_mesons': select_mesons,
@@ -1814,7 +1895,7 @@ class PlotDetectors(Task):
         }
         tag = select_mesons_tag(select_mesons)
         super().__init__(
-            name=f'plot_detectors_{data_type}{"_pz" if protonz_cut else ""}{"masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}',
+            name=f'plot_detectors_{data_type}{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}',
             inputs=[
                 *[
                     PlotDeltaTVP(
@@ -1884,6 +1965,7 @@ class PlotAll(Task):
         *,
         data_type: str,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1893,6 +1975,7 @@ class PlotAll(Task):
         single_plot_kwargs = {
             'data_type': data_type,
             'protonz_cut': protonz_cut,
+            'dedx_cut': dedx_cut,
             'mass_cut': mass_cut,
             'chisqdof': chisqdof,
             'select_mesons': select_mesons,
@@ -1901,13 +1984,14 @@ class PlotAll(Task):
         }
         combined_plot_kwargs = {
             'protonz_cut': protonz_cut,
+            'dedx_cut': dedx_cut,
             'mass_cut': mass_cut,
             'chisqdof': chisqdof,
             'select_mesons': select_mesons,
         }
         tag = select_mesons_tag(select_mesons)
         super().__init__(
-            name=f'plot_all_{data_type}{"_pz" if protonz_cut else ""}{"masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}',
+            name=f'plot_all_{data_type}{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}',
             inputs=[
                 PlotMesonMass(**single_plot_kwargs),
                 PlotBaryonMass(**single_plot_kwargs),

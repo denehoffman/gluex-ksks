@@ -110,6 +110,7 @@ class PlotCLASComparison(Task):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -126,6 +127,7 @@ class PlotCLASComparison(Task):
         inputs: list[Task] = [
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
+                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -145,7 +147,7 @@ class PlotCLASComparison(Task):
             / ('CLAS_sideband_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png'),
         ]
         super().__init__(
-            f'clas_comparison_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{self.nbins}_boot_{nboot}_{bootstrap_mode}',
+            f'clas_comparison_plot{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{self.nbins}_boot_{nboot}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,

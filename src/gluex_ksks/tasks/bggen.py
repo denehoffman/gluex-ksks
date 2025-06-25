@@ -42,6 +42,7 @@ class PlotBGGEN(Task):
         self,
         *,
         protonz_cut: bool,
+        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -52,6 +53,7 @@ class PlotBGGEN(Task):
                 data_type='bggen',
                 run_period=run_period,
                 protonz_cut=protonz_cut,
+                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -60,10 +62,10 @@ class PlotBGGEN(Task):
         ]
         outputs = [
             PLOTS_PATH
-            / f'{name}_bggen{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}.png'
+            / f'{name}_bggen{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}.png'
             for name in ['chisqdof_large', 'chisqdof', 'protonz', 'rfl', 'mm2', 'me']
         ]
-        task_name = f'bggen_plots{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}'
+        task_name = f'bggen_plots{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}'
         super().__init__(
             task_name, inputs=inputs, outputs=outputs, log_directory=LOG_PATH
         )
