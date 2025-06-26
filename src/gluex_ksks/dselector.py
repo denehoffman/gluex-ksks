@@ -1,3 +1,4 @@
+from typing import TypedDict
 import subprocess
 import tempfile
 from pathlib import Path
@@ -123,7 +124,18 @@ def run_slurm_script(content: str):
 
 
 queues = {'blue': 64, 'green': 32}
-data_analysis_sets = [
+
+
+class AnalysisSet(TypedDict):
+    output_name: str
+    data_type: Literal['data', 'sigmc', 'bkgmc', 'bggen']
+    input_dir: Path
+    job_name: str
+    dselector_c_path: Path
+    tree_name: str
+
+
+data_analysis_sets: list[AnalysisSet] = [
     {
         'output_name': output_name,
         'data_type': 'data',
@@ -162,7 +174,7 @@ data_analysis_sets = [
         ),
     ]
 ]
-sigmc_analysis_sets = [
+sigmc_analysis_sets: list[AnalysisSet] = [
     {
         'output_name': output_name,
         'data_type': 'sigmc',
@@ -201,7 +213,7 @@ sigmc_analysis_sets = [
         ),
     ]
 ]
-bkgmc_analysis_sets = [
+bkgmc_analysis_sets: list[AnalysisSet] = [
     {
         'output_name': output_name,
         'data_type': 'bkgmc',
@@ -240,7 +252,7 @@ bkgmc_analysis_sets = [
         ),
     ]
 ]
-bggen_analysis_sets = [
+bggen_analysis_sets: list[AnalysisSet] = [
     {
         'output_name': output_name,
         'data_type': 'bggen',
@@ -264,32 +276,27 @@ bggen_analysis_sets = [
 
 
 def run_analysis(
-    output_name: str,
+    analysis_set: AnalysisSet,
     *,
-    data_type: str,
-    input_dir: Path,
-    job_name: str,
     queue_name: str,
     env_path: Path,
     version_path: Path,
-    dselector_c_path: Path,
-    tree_name: str,
 ):
     scratch_dir = Path.cwd() / 'tmp'
     scratch_dir.mkdir(parents=True, exist_ok=True)
     run_slurm_script(
         generate_slurm_job(
-            output_name,
-            raw_output_dir=RAW_DATASET_PATH[data_type],
-            input_dir=input_dir,
-            job_name=job_name,
+            analysis_set['output_name'],
+            raw_output_dir=RAW_DATASET_PATH[analysis_set['data_type']],
+            input_dir=analysis_set['input_dir'],
+            job_name=analysis_set['job_name'],
             queue_name=queue_name,
             env_path=env_path,
             version_path=version_path,
             scratch_dir=scratch_dir,
-            dselector_c_path=dselector_c_path,
-            dselector_h_path=dselector_c_path.with_suffix('.h'),
-            tree_name=tree_name,
+            dselector_c_path=analysis_set['dselector_c_path'],
+            dselector_h_path=analysis_set['dselector_c_path'].with_suffix('.h'),
+            tree_name=analysis_set['tree_name'],
         )
     )
 
@@ -309,7 +316,7 @@ def run_on_slurm(
 
     for analysis_set in analysis_sets:
         run_analysis(
-            **analysis_set,
+            analysis_set,
             queue_name=queue_name,
             env_path=Path.cwd() / 'analysis' / 'env.sh',
             version_path=Path.cwd() / 'analysis' / 'version.xml',

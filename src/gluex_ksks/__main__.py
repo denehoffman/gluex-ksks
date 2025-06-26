@@ -1,3 +1,4 @@
+from modak import Task
 from modak import TaskQueue
 
 from gluex_ksks.constants import (
@@ -8,7 +9,6 @@ from gluex_ksks.constants import (
     mkdirs,
     LOG_PATH,
 )
-import laddu as ld
 from itertools import product
 
 from gluex_ksks.tasks.aux_plots import MakeAuxiliaryPlots
@@ -43,7 +43,8 @@ DEFAULT_CHISQDOF = 3.0
 
 @click.command()
 @click.option('--chisqdof', default=DEFAULT_CHISQDOF, type=float)
-def main(chisqdof: float):
+@click.option('--test', is_flag=True)
+def main(chisqdof: float, test: bool):
     mkdirs()
     state_file_path = STATE_PATH
     if chisqdof != DEFAULT_CHISQDOF:
@@ -56,14 +57,13 @@ def main(chisqdof: float):
         state_file_path=state_file_path,
         log_path=LOG_PATH / 'all.log',
     )
-    tasks = [
+    tasks: list[Task] = [
         PlotFlux(),
         MakeAuxiliaryPlots(),
         *[
             PlotDetectors(
                 data_type=data_type,
                 protonz_cut=False,
-                dedx_cut=False,
                 mass_cut=False,
                 chisqdof=None,
                 select_mesons=None,
@@ -76,7 +76,6 @@ def main(chisqdof: float):
             PlotAltHypos(
                 data_type=data_type,
                 protonz_cut=False,
-                dedx_cut=False,
                 mass_cut=False,
                 chisqdof=None,
                 select_mesons=None,
@@ -89,16 +88,14 @@ def main(chisqdof: float):
             PlotAll(
                 data_type='data',
                 protonz_cut=cuts[0],
-                dedx_cut=cuts[1],
-                mass_cut=cuts[2],
-                chisqdof=cuts[3],
-                select_mesons=cuts[4],
+                mass_cut=cuts[1],
+                chisqdof=cuts[2],
+                select_mesons=cuts[3],
                 method=None,
                 nspec=None,
             )
             for cuts in list(
                 product(
-                    [True, False],
                     [True, False],
                     [True, False],
                     [None, chisqdof],
@@ -109,14 +106,12 @@ def main(chisqdof: float):
         *[
             PlotBGGEN(
                 protonz_cut=cuts[0],
-                dedx_cut=cuts[1],
-                mass_cut=cuts[2],
-                chisqdof=cuts[3],
-                select_mesons=cuts[4],
+                mass_cut=cuts[1],
+                chisqdof=cuts[2],
+                select_mesons=cuts[3],
             )
             for cuts in list(
                 product(
-                    [True, False],
                     [True, False],
                     [True, False],
                     [None, chisqdof],
@@ -126,7 +121,6 @@ def main(chisqdof: float):
         ],
         FactorizationReport(
             protonz_cut=True,
-            dedx_cut=True,
             mass_cut=True,
             chisqdof=chisqdof,
             select_mesons=True,
@@ -134,7 +128,6 @@ def main(chisqdof: float):
         ),
         SPlotReport(
             protonz_cut=True,
-            dedx_cut=True,
             mass_cut=True,
             chisqdof=chisqdof,
             select_mesons=True,
@@ -143,7 +136,6 @@ def main(chisqdof: float):
         *[
             ProcessBinned(
                 protonz_cut=True,
-                dedx_cut=True,
                 mass_cut=True,
                 chisqdof=chisqdof,
                 select_mesons=True,
@@ -156,7 +148,6 @@ def main(chisqdof: float):
         *[
             ProcessUnbinned(
                 protonz_cut=True,
-                dedx_cut=True,
                 mass_cut=True,
                 chisqdof=chisqdof,
                 select_mesons=True,
@@ -173,7 +164,6 @@ def main(chisqdof: float):
             [
                 PlotCLASComparison(
                     protonz_cut=True,
-                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -185,7 +175,6 @@ def main(chisqdof: float):
                 PlotAll(
                     data_type='data',
                     protonz_cut=True,
-                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -196,7 +185,6 @@ def main(chisqdof: float):
                     PlotDetectors(
                         data_type=data_type,
                         protonz_cut=True,
-                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=True,
@@ -209,7 +197,6 @@ def main(chisqdof: float):
                     PlotAltHypos(
                         data_type=data_type,
                         protonz_cut=True,
-                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=True,
@@ -221,7 +208,6 @@ def main(chisqdof: float):
                 PlotAll(
                     data_type='data',
                     protonz_cut=True,
-                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -231,7 +217,6 @@ def main(chisqdof: float):
                 PlotDetectors(
                     data_type='data',
                     protonz_cut=True,
-                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -241,7 +226,6 @@ def main(chisqdof: float):
                 PlotAltHypos(
                     data_type='data',
                     protonz_cut=True,
-                    dedx_cut=True,
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
@@ -251,7 +235,6 @@ def main(chisqdof: float):
                 *[
                     ProcessBinned(
                         protonz_cut=True,
-                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=None,
@@ -264,7 +247,6 @@ def main(chisqdof: float):
                 *[
                     ProcessUnbinned(
                         protonz_cut=True,
-                        dedx_cut=True,
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=None,

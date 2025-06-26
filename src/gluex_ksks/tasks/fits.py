@@ -45,7 +45,6 @@ class NarrowData(Task):
         data_type: str,
         run_period: str,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -59,7 +58,6 @@ class NarrowData(Task):
                     data_type=data_type,
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -72,7 +70,6 @@ class NarrowData(Task):
                 SPlotWeights(
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -86,7 +83,7 @@ class NarrowData(Task):
             inputs[0].outputs[0].parent / f'{inputs[0].outputs[0].stem}_narrow.parquet'
         ]
         super().__init__(
-            f'narrow_{data_type}_{run_period}_{protonz_cut}_{dedx_cut}_{mass_cut}_{chisqdof}_{tag}',
+            f'narrow_{data_type}_{run_period}_{protonz_cut}_{mass_cut}_{chisqdof}_{tag}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -123,7 +120,6 @@ class BinnedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -142,7 +138,6 @@ class BinnedFit(Task):
                     data_type='data',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -156,7 +151,6 @@ class BinnedFit(Task):
                     data_type='sigmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -168,10 +162,10 @@ class BinnedFit(Task):
         ]
         outputs = [
             FITS_PATH
-            / f'binned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}.pkl',
+            / f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}.pkl',
         ]
         super().__init__(
-            f'binned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}',
+            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -210,7 +204,6 @@ class BinnedFitUncertainty(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -228,7 +221,6 @@ class BinnedFitUncertainty(Task):
         inputs: list[Task] = [
             BinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -243,7 +235,7 @@ class BinnedFitUncertainty(Task):
             / f'{inputs[0].outputs[0].stem}_boot_{nboot}.pkl'
         ]
         super().__init__(
-            f'binned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
+            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -269,7 +261,6 @@ class PlotBinnedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -288,7 +279,6 @@ class PlotBinnedFit(Task):
         inputs: list[Task] = [
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -301,7 +291,7 @@ class PlotBinnedFit(Task):
         ]
         outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
-            f'binned_fit_plot{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
+            f'binned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -448,7 +438,6 @@ class BinnedFitReport(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -467,7 +456,6 @@ class BinnedFitReport(Task):
         inputs: list[Task] = [
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -480,7 +468,7 @@ class BinnedFitReport(Task):
         ]
         outputs = [REPORTS_PATH / (inputs[0].outputs[0].stem + '.tex')]
         super().__init__(
-            f'binned_fit_report{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
+            f'binned_fit_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -576,7 +564,6 @@ class GuidedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -592,7 +579,6 @@ class GuidedFit(Task):
         inputs: list[Task] = [
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -605,10 +591,10 @@ class GuidedFit(Task):
         ]
         outputs = [
             FITS_PATH
-            / f'guided_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}.pkl',
+            / f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}.pkl',
         ]
         super().__init__(
-            f'guided_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
+            f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -636,7 +622,6 @@ class PlotGuidedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -655,7 +640,6 @@ class PlotGuidedFit(Task):
         inputs: list[Task] = [
             GuidedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -667,7 +651,6 @@ class PlotGuidedFit(Task):
             ),
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -680,7 +663,7 @@ class PlotGuidedFit(Task):
         ]
         outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
-            f'guided_fit_plot{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
+            f'guided_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -871,7 +854,6 @@ class UnbinnedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -892,7 +874,6 @@ class UnbinnedFit(Task):
                     data_type='data',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -906,7 +887,6 @@ class UnbinnedFit(Task):
                     data_type='sigmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -920,7 +900,6 @@ class UnbinnedFit(Task):
             inputs.append(
                 GuidedFit(
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -933,10 +912,10 @@ class UnbinnedFit(Task):
             )
         outputs = [
             FITS_PATH
-            / f'unbinned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}.pkl',
+            / f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}.pkl',
         ]
         super().__init__(
-            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}',
+            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -980,7 +959,6 @@ class UnbinnedFitUncertainty(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -999,7 +977,6 @@ class UnbinnedFitUncertainty(Task):
         inputs: list[Task] = [
             UnbinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1016,7 +993,7 @@ class UnbinnedFitUncertainty(Task):
             / f'{inputs[0].outputs[0].stem}_boot_{nboot}.pkl'
         ]
         super().__init__(
-            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_boot_{nboot}',
+            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_boot_{nboot}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -1042,7 +1019,6 @@ class PlotUnbinnedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1061,7 +1037,6 @@ class PlotUnbinnedFit(Task):
         inputs: list[Task] = [
             UnbinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1075,7 +1050,7 @@ class PlotUnbinnedFit(Task):
         ]
         outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + '.png')]
         super().__init__(
-            f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}',
+            f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
@@ -1186,7 +1161,6 @@ class UnbinnedFitReport(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1207,7 +1181,6 @@ class UnbinnedFitReport(Task):
         inputs: list[Task] = [
             UnbinnedFitUncertainty(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1222,7 +1195,7 @@ class UnbinnedFitReport(Task):
         ]
         outputs = [REPORTS_PATH / (inputs[0].outputs[0].stem + '.tex')]
         super().__init__(
-            f'unbinned_fit_report{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_{nboot}',
+            f'unbinned_fit_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_{nboot}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -1314,7 +1287,6 @@ class PlotUnbinnedAndBinnedFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1334,7 +1306,6 @@ class PlotUnbinnedAndBinnedFit(Task):
         inputs: list[Task] = [
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1346,7 +1317,6 @@ class PlotUnbinnedAndBinnedFit(Task):
             ),
             UnbinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1360,10 +1330,10 @@ class PlotUnbinnedAndBinnedFit(Task):
         ]
         outputs = [
             PLOTS_PATH
-            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}{"_guided" if guided else ""}_{bootstrap_mode}.png',
+            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}{"_guided" if guided else ""}_{bootstrap_mode}.png',
         ]
         super().__init__(
-            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}_{bootstrap_mode}',
+            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
@@ -1558,7 +1528,6 @@ class ProcessBinned(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1568,10 +1537,9 @@ class ProcessBinned(Task):
     ):
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
-        inputs = [
+        inputs: list[Task] = [
             PlotBinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1584,7 +1552,6 @@ class ProcessBinned(Task):
             ),
             BinnedFitReport(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1597,7 +1564,7 @@ class ProcessBinned(Task):
         ]
         outputs = []
         super().__init__(
-            f'process_binned_fits{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
+            f'process_binned_fits{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -1612,7 +1579,6 @@ class ProcessUnbinned(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -1622,10 +1588,9 @@ class ProcessUnbinned(Task):
     ):
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
-        inputs = [
+        inputs: list[Task] = [
             PlotBinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1638,7 +1603,6 @@ class ProcessUnbinned(Task):
             ),
             BinnedFitReport(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1650,7 +1614,6 @@ class ProcessUnbinned(Task):
             ),
             PlotUnbinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1663,7 +1626,6 @@ class ProcessUnbinned(Task):
             ),
             PlotGuidedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1676,7 +1638,6 @@ class ProcessUnbinned(Task):
             ),
             PlotUnbinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1689,7 +1650,6 @@ class ProcessUnbinned(Task):
             ),
             UnbinnedFitReport(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1703,7 +1663,6 @@ class ProcessUnbinned(Task):
             ),
             UnbinnedFitReport(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1717,7 +1676,6 @@ class ProcessUnbinned(Task):
             ),
             PlotUnbinnedAndBinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1731,7 +1689,6 @@ class ProcessUnbinned(Task):
             ),
             PlotUnbinnedAndBinnedFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -1746,7 +1703,7 @@ class ProcessUnbinned(Task):
         ]
         outputs = []
         super().__init__(
-            f'process_unbinned_fits{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
+            f'process_unbinned_fits{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,

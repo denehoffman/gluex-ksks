@@ -132,7 +132,7 @@ def add_parameter_text(
     num_params = len(param_names)
     min_font_size, max_font_size = 8, 14
     min_spacing, max_spacing = 0.015, 0.04
-    font_size = max(min_font_size, min(max_font_size, 14 - 0.2 * num_params))
+    font_size = np.max([min_font_size, np.min([max_font_size, 14 - 0.2 * num_params])])
     y_step = max(min_spacing, min(max_spacing, 0.85 / num_params))
     differences = (
         param_values - prev_values

@@ -185,7 +185,7 @@ class RCDBData:
         energy_index = np.digitize(beam_energy, pol_hist.bins)
         if energy_index >= len(pol_hist.counts):
             return (np.nan, np.nan, False)
-        magnitude: float = pol_hist.counts[energy_index]
+        magnitude: float = float(pol_hist.counts[energy_index])
         return magnitude * np.cos(angle), magnitude * np.sin(angle), True
 
 

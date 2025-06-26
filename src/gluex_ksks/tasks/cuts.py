@@ -132,7 +132,6 @@ class FiducialCuts(Task):
         data_type: str,
         run_period: str,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -141,7 +140,6 @@ class FiducialCuts(Task):
         self.run_period = run_period
         self.cut_type = None
         self.protonz_cut = protonz_cut
-        self.dedx_cut = dedx_cut
         self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
@@ -152,7 +150,6 @@ class FiducialCuts(Task):
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=self.protonz_cut,
-                    dedx_cut=self.dedx_cut,
                     mass_cut=self.mass_cut,
                     chisqdof=self.chisqdof,
                     select_mesons=None,
@@ -168,7 +165,6 @@ class FiducialCuts(Task):
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=self.protonz_cut,
-                    dedx_cut=self.dedx_cut,
                     mass_cut=self.mass_cut,
                     chisqdof=None,
                     select_mesons=self.select_mesons,
@@ -184,7 +180,6 @@ class FiducialCuts(Task):
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=self.protonz_cut,
-                    dedx_cut=self.dedx_cut,
                     mass_cut=False,
                     chisqdof=self.chisqdof,
                     select_mesons=self.select_mesons,
@@ -194,29 +189,12 @@ class FiducialCuts(Task):
                 inputs[0].outputs[0].parent
                 / f'{inputs[0].outputs[0].stem}_masscut.parquet'
             ]
-        elif self.dedx_cut:
-            inputs = [
-                FiducialCuts(
-                    data_type=self.data_type,
-                    run_period=self.run_period,
-                    protonz_cut=self.protonz_cut,
-                    dedx_cut=False,
-                    mass_cut=self.mass_cut,
-                    chisqdof=self.chisqdof,
-                    select_mesons=self.select_mesons,
-                )
-            ]
-            outputs = [
-                inputs[0].outputs[0].parent
-                / f'{inputs[0].outputs[0].stem}_dedx.parquet'
-            ]
         elif self.protonz_cut:
             inputs = [
                 FiducialCuts(
                     data_type=self.data_type,
                     run_period=self.run_period,
                     protonz_cut=False,
-                    dedx_cut=self.dedx_cut,
                     mass_cut=self.mass_cut,
                     chisqdof=self.chisqdof,
                     select_mesons=self.select_mesons,
@@ -234,7 +212,7 @@ class FiducialCuts(Task):
             ]
             outputs = [inputs[0].outputs[0]]
         super().__init__(
-            f'fiducial_cut_{self.data_type}_{self.run_period}_{self.dedx_cut}_{self.protonz_cut}_{self.mass_cut}_{self.chisqdof}_{self.tag}',
+            f'fiducial_cut_{self.data_type}_{self.run_period}_{self.protonz_cut}_{self.mass_cut}_{self.chisqdof}_{self.tag}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -248,8 +226,6 @@ class FiducialCuts(Task):
             self.cut_chisqdof()
         elif self.mass_cut:
             self.cut_mass()
-        elif self.dedx_cut:
-            self.cut_dedx()
         elif self.protonz_cut:
             self.cut_protonz()
         else:
@@ -261,32 +237,6 @@ class FiducialCuts(Task):
         self.logger.info(f'Cutting Proton-z for {src}')
         src_data = pl.scan_parquet(src)
         dst_data = src_data.filter(pl.col('Proton_Z').is_between(50, 80))
-        dst_data.sink_parquet(dst)
-        self.logger.info(f'Result written to {dst}')
-
-    def cut_dedx(self):
-        src = self.inputs[0].outputs[0]
-        dst = self.outputs[0]
-        self.logger.info(f'Cutting Pion FDC dE/dx for {src}')
-        src_data = pl.scan_parquet(src)
-        dst_data = src_data.filter(
-            (
-                (pl.col('PiPlus1_dEdx_FDC').gt(1.5))
-                | (pl.col('PiPlus1_dEdx_FDC').eq(0.0))
-            ),
-            (
-                (pl.col('PiMinus1_dEdx_FDC').gt(1.5))
-                | (pl.col('PiMinus1_dEdx_FDC').eq(0.0))
-            ),
-            (
-                (pl.col('PiPlus2_dEdx_FDC').gt(1.5))
-                | (pl.col('PiPlus2_dEdx_FDC').eq(0.0))
-            ),
-            (
-                (pl.col('PiMinus2_dEdx_FDC').gt(1.5))
-                | (pl.col('PiMinus2_dEdx_FDC').eq(0.0))
-            ),
-        )
         dst_data.sink_parquet(dst)
         self.logger.info(f'Result written to {dst}')
 

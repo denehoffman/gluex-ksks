@@ -121,14 +121,12 @@ class FactorizationFit(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
         nspec: int,
     ):
         self.protonz_cut = protonz_cut
-        self.dedx_cut = dedx_cut
         self.mass_cut = mass_cut
         self.chisqdof = chisqdof
         self.select_mesons = select_mesons
@@ -139,7 +137,6 @@ class FactorizationFit(Task):
                     data_type='data',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -151,7 +148,6 @@ class FactorizationFit(Task):
                     data_type='sigmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -163,7 +159,6 @@ class FactorizationFit(Task):
                     data_type='bkgmc',
                     run_period=run_period,
                     protonz_cut=protonz_cut,
-                    dedx_cut=dedx_cut,
                     mass_cut=mass_cut,
                     chisqdof=chisqdof,
                     select_mesons=select_mesons,
@@ -174,12 +169,12 @@ class FactorizationFit(Task):
         self.tag = select_mesons_tag(select_mesons)
         outputs = [
             FITS_PATH
-            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_dedx" if self.dedx_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.pkl',
+            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.pkl',
             PLOTS_PATH
-            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_dedx" if self.dedx_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.png',
+            / f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}.png',
         ]
         super().__init__(
-            name=f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_dedx" if self.dedx_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}',
+            name=f'factorization_fit{"_pz" if self.protonz_cut else ""}{"_masscut" if self.mass_cut else ""}{f"_chisqdof_{self.chisqdof}" if self.chisqdof is not None else ""}_{self.tag}_{self.nspec}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -189,11 +184,11 @@ class FactorizationFit(Task):
     def run(self) -> None:
         if self.outputs[0].exists():
             self.logger.info(
-                f'Skipping factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+                f'Skipping factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
             )
         else:
             self.logger.info(
-                f'Running factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, dedx_cut={self.dedx_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
+                f'Running factorization fit (nspec={self.nspec}) with pz={self.protonz_cut}, mass_cut={self.mass_cut}, chisqdof={self.chisqdof}, select={self.tag}'
             )
         arrays_data = SPlotArrays.from_polars(
             add_m_meson(
@@ -275,7 +270,6 @@ class FactorizationReport(Task):
         self,
         *,
         protonz_cut: bool,
-        dedx_cut: bool,
         mass_cut: bool,
         chisqdof: float | None,
         select_mesons: bool | None,
@@ -284,7 +278,6 @@ class FactorizationReport(Task):
         inputs: list[Task] = [
             FactorizationFit(
                 protonz_cut=protonz_cut,
-                dedx_cut=dedx_cut,
                 mass_cut=mass_cut,
                 chisqdof=chisqdof,
                 select_mesons=select_mesons,
@@ -295,10 +288,10 @@ class FactorizationReport(Task):
         self.tag = select_mesons_tag(select_mesons)
         outputs = [
             REPORTS_PATH
-            / f'factorization_report{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof:.2f}" if chisqdof is not None else ""}_{self.tag}_max_nspec_{max_nspec}.tex'
+            / f'factorization_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof:.2f}" if chisqdof is not None else ""}_{self.tag}_max_nspec_{max_nspec}.tex'
         ]
         super().__init__(
-            name=f'factorization_report{"_pz" if protonz_cut else ""}{"_dedx" if dedx_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof:.2f}" if chisqdof is not None else ""}_{self.tag}_max_nspec_{max_nspec}',
+            name=f'factorization_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof:.2f}" if chisqdof is not None else ""}_{self.tag}_max_nspec_{max_nspec}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
