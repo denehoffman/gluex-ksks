@@ -24,6 +24,10 @@ class Binning:
     def edges(self) -> FloatArray:
         return np.linspace(*self.range, self.bins + 1, endpoint=True)
 
+    @property
+    def centers(self) -> FloatArray:
+        return (self.edges[:-1] + self.edges[1:]) / 2
+
 
 class PathSet(ABC):
     @property
@@ -663,7 +667,7 @@ class BinnedFitResultUncertainty:
     samples: list[list[FloatArray]]
     fit_result: BinnedFitResult
     _: KW_ONLY
-    uncertainty: Literal['sqrt', 'bootstrap', 'mcmc'] = 'sqrt'
+    uncertainty: Literal['sqrt', 'bootstrap', 'mcmc'] = 'bootstrap'
     lcu_cache: (
         dict[
             str,
@@ -806,8 +810,8 @@ class BinnedFitResultUncertainty:
                 elif self.uncertainty == 'bootstrap' and bootstrap_mode == 'CI-BC':
                     fit_value = fit_histograms[Wave.encode_waves(waveset)].counts[ibin]
                     n_b = len(self.samples[ibin])
-                    phi = norm().cdf  # pyright:ignore[reportUnknownVariableType]
-                    phi_inv = norm().ppf  # pyright:ignore[reportUnknownVariableType]
+                    phi = norm().cdf
+                    phi_inv = norm().ppf
 
                     def cdf_b(x: float) -> float:
                         return (
@@ -819,11 +823,11 @@ class BinnedFitResultUncertainty:
                         )
 
                     a = (1 - confidence_percent / 100) / 2
-                    z_a_lo = phi_inv(a)  # pyright:ignore[reportUnknownVariableType]
-                    z_a_hi = phi_inv(1 - a)  # pyright:ignore[reportUnknownVariableType]
-                    z_0 = phi_inv(cdf_b(fit_value))  # pyright:ignore[reportUnknownVariableType]
-                    a_lo = phi(2 * z_0 + z_a_lo)  # pyright:ignore[reportUnknownVariableType]
-                    a_hi = phi(2 * z_0 + z_a_hi)  # pyright:ignore[reportUnknownVariableType]
+                    z_a_lo = phi_inv(a)
+                    z_a_hi = phi_inv(1 - a)
+                    z_0 = phi_inv(cdf_b(fit_value))
+                    a_lo = phi(2 * z_0 + z_a_lo)
+                    a_hi = phi(2 * z_0 + z_a_hi)
 
                     quantiles = np.quantile(
                         intensities_in_bin[Wave.encode_waves(waveset)],
@@ -908,6 +912,148 @@ def calculate_bootstrap_uncertainty_binned(
 class UnbinnedFitResultUncertainty:
     samples: list[FloatArray]
     fit_result: UnbinnedFitResult
+    lcu_cache: (
+        dict[
+            str,
+            dict[
+                int,
+                tuple[
+                    FloatArray,
+                    FloatArray,
+                    FloatArray,
+                ],
+            ],
+        ]
+        | None
+    ) = None
+
+    def get_lower_center_upper(
+        self,
+        binning: Binning,
+        *,
+        bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'CI-BC',
+        confidence_percent: int = 68,
+    ) -> dict[
+        int,
+        tuple[FloatArray, FloatArray, FloatArray],
+    ]:
+        if (
+            self.lcu_cache is not None
+            and (cache := self.lcu_cache.get(bootstrap_mode)) is not None
+        ):
+            return cache
+        data_datasets = self.fit_result.paths.get_data_datasets()
+        accmc_datasets = self.fit_result.paths.get_accmc_datasets()
+        wavesets = Wave.power_set(self.fit_result.waves)
+        lcu: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        fit_histograms = self.fit_result.get_histograms(binning)
+        res_mass = ld.Mass([2, 3])
+        bootstrapped_histograms: dict[int, list[Histogram]] = {
+            Wave.encode_waves(waveset): [] for waveset in wavesets
+        }
+        for isample, sample in enumerate(self.samples):
+            nlls = [
+                ld.NLL(
+                    self.fit_result.model,
+                    ds_data.bootstrap(isample),
+                    ds_accmc,
+                )
+                for ds_data, ds_accmc in zip(data_datasets, accmc_datasets)
+            ]
+            for waveset in wavesets:
+                bootstrapped_histograms[Wave.encode_waves(waveset)].append(
+                    Histogram(
+                        *np.histogram(
+                            np.concatenate(
+                                [
+                                    res_mass.value_on(accmc_dataset)
+                                    for accmc_dataset in accmc_datasets
+                                ]
+                            ),
+                            weights=np.concatenate(
+                                [
+                                    nll.project_with(
+                                        sample,
+                                        Wave.get_waveset_names(
+                                            waveset,
+                                            mass_dependent=True,
+                                            phase_factor=self.fit_result.phase_factor,
+                                        ),
+                                    )
+                                    for nll in nlls
+                                ]
+                            ),
+                            bins=binning.edges,
+                        )
+                    )
+                )
+            for waveset in wavesets:
+                intensities = np.array(
+                    [
+                        histogram.counts
+                        for histogram in bootstrapped_histograms[
+                            Wave.encode_waves(waveset)
+                        ]
+                    ]
+                )
+                if bootstrap_mode == 'CI':
+                    a_lo = (1 - confidence_percent / 100) / 2
+                    a_hi = 1 - a_lo
+                    quantiles = np.quantile(intensities, [a_lo, 0.5, a_hi], axis=0)
+                elif bootstrap_mode == 'CI-BC':
+                    fit_values = fit_histograms[Wave.encode_waves(waveset)].counts
+                    n_b = len(self.samples)
+                    phi = norm().cdf
+                    phi_inv = norm().ppf
+
+                    def cdf_b(xs: FloatArray) -> FloatArray:
+                        return (
+                            np.sum(
+                                [
+                                    intensities[:, ix] < x
+                                    for ix, x in enumerate(xs.tolist())
+                                ],
+                                axis=1,
+                            )
+                            / n_b
+                        )
+
+                    a = (1 - confidence_percent / 100) / 2
+                    z_a_lo = phi_inv(a)
+                    z_a_hi = phi_inv(1 - a)
+                    z_0s = phi_inv(cdf_b(fit_values))
+                    a_los = phi(2 * z_0s + z_a_lo)
+                    a_his = phi(2 * z_0s + z_a_hi)
+
+                    quantiles = np.array(
+                        [
+                            np.quantile(
+                                intensities[:, ibin],
+                                [a_los[ibin], 0.5, a_his[ibin]],
+                            )
+                            for ibin in range(len(intensities[0]))
+                        ]
+                    ).T
+                else:
+                    # bootstrap-SE only
+                    fit_values = fit_histograms[Wave.encode_waves(waveset)]
+                    std_errs = np.std(intensities, ddof=1, axis=0)
+                    quantiles = np.array(
+                        [fit_values - std_errs, fit_values, fit_values + std_errs],
+                        dtype=np.float64,
+                    )
+
+                lcu[Wave.encode_waves(waveset)] = (
+                    quantiles[0],
+                    quantiles[1],
+                    quantiles[2],
+                )
+        if self.lcu_cache is None:
+            self.lcu_cache = {bootstrap_mode: lcu}
+        else:
+            self.lcu_cache[bootstrap_mode] = lcu
+        print(lcu)
+        return lcu
 
 
 def calculate_bootstrap_uncertainty_unbinned(
