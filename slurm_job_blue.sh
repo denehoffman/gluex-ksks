@@ -5,6 +5,7 @@
 #SBATCH --ntasks=32
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=120G
+#SBATCH --partition=blue
 
 source /home/nhoffman/.venv/bin/activate
 cd "$PWD" || exit
