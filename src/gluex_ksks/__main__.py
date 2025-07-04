@@ -26,25 +26,45 @@ from gluex_ksks.wave import Wave
 
 import click
 
-BINNED_WAVESETS = [
-    [Wave(0, 0, '+'), Wave(2, 2, '+')],
-    [Wave(0, 0, '+'), Wave(2, 1, '+')],
-    [Wave(0, 0, '+'), Wave(2, 0, '+')],
-    [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+')],
-    [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+'), Wave(2, 2, '-')],
-]
-UNBINNED_WAVESETS = [
-    [Wave(0, 0, '+'), Wave(2, 2, '+')],
-    [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+')],
-]
-
 DEFAULT_CHISQDOF = 3.0
 
 
 @click.command()
-@click.option('--chisqdof', default=DEFAULT_CHISQDOF, type=float)
-@click.option('--test', is_flag=True)
-def main(chisqdof: float, test: bool):
+@click.option('--chisqdof', default=3.0, type=float)
+@click.option(
+    '--waves',
+    default='all',
+    type=click.Choice(['all', 'spd2p', 'spnd2p', 'spd0p', 'spd1p', 'spnd2pn']),
+)
+def main(chisqdof: float, waves: str):
+    BINNED_WAVESETS = []
+    UNBINNED_WAVESETS = []
+    if waves == 'spd2p' or waves == 'all':
+        BINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(2, 2, '+')],
+        )
+        UNBINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(2, 2, '+')],
+        )
+    if waves == 'spnd2p' or waves == 'all':
+        BINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+')],
+        )
+        UNBINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+')],
+        )
+    if waves == 'spd0p' or waves == 'all':
+        BINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(2, 0, '+')],
+        )
+    if waves == 'spd1p' or waves == 'all':
+        BINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(2, 1, '+')],
+        )
+    if waves == 'spnd2pn' or waves == 'all':
+        BINNED_WAVESETS.append(
+            [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+'), Wave(2, 2, '-')],
+        )
     mkdirs()
     state_file_path = STATE_PATH
     if chisqdof != DEFAULT_CHISQDOF:
