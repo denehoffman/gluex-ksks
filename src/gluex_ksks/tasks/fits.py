@@ -1,3 +1,6 @@
+from gluex_ksks.constants import NRESTARTS_MIN_GUIDED
+from gluex_ksks.constants import NRESTARTS_MIN
+from gluex_ksks.constants import NBINS
 import pickle
 from typing import Literal, override
 
@@ -11,7 +14,6 @@ from gluex_ksks.constants import (
     FITS_PATH,
     GRAY,
     LOG_PATH,
-    MESON_MASS_BINS,
     MESON_MASS_RANGE,
     NBOOT,
     NUM_THREADS,
@@ -128,10 +130,8 @@ class BinnedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
     ):
         self.waves = waves
-        self.nbins = nbins
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -164,10 +164,10 @@ class BinnedFit(Task):
         ]
         outputs = [
             FITS_PATH
-            / f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}.pkl',
+            / f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}.pkl',
         ]
         super().__init__(
-            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}',
+            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -189,12 +189,12 @@ class BinnedFit(Task):
                 )
             ]
         )
-        binning = Binning(self.nbins, MESON_MASS_RANGE)
+        binning = Binning(NBINS, MESON_MASS_RANGE)
         fit_result = fit_binned(
             self.waves,
             analysis_path_set,
             binning,
-            iters=3,
+            iters=NRESTARTS_MIN,
             threads=NUM_THREADS,
             logger=self.logger,
         )
@@ -212,12 +212,8 @@ class BinnedFitUncertainty(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot: int,
     ):
         self.waves = waves
-        self.nbins = nbins
-        self.nboot = nboot
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -229,15 +225,11 @@ class BinnedFitUncertainty(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
             )
         ]
-        outputs = [
-            inputs[0].outputs[0].parent
-            / f'{inputs[0].outputs[0].stem}_boot_{nboot}.pkl'
-        ]
+        outputs = [inputs[0].outputs[0].parent / f'{inputs[0].outputs[0].stem}_unc.pkl']
         super().__init__(
-            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
+            f'binned_fit_unc{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -250,7 +242,7 @@ class BinnedFitUncertainty(Task):
             self.inputs[0].outputs[0].open('rb')
         )
         result = calculate_bootstrap_uncertainty_binned(
-            binned_fit_result, nboot=self.nboot, threads=NUM_THREADS, logger=self.logger
+            binned_fit_result, nboot=NBOOT, threads=NUM_THREADS, logger=self.logger
         )
         result.get_lower_center_upper(bootstrap_mode='SE')
         result.get_lower_center_upper(bootstrap_mode='CI')
@@ -269,13 +261,10 @@ class PlotBinnedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot: int,
         bootstrap_mode: Literal['SE', 'CI', 'CI-BC'],
     ):
         self.waves = waves
-        self.nbins = nbins
-        self.nboot = nboot
+        self.bootstrap_mode = bootstrap_mode
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -287,13 +276,11 @@ class PlotBinnedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot,
             )
         ]
         outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
-            f'binned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
+            f'binned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -306,7 +293,9 @@ class PlotBinnedFit(Task):
         )
         data_hist = binned_fit_result.fit_result.get_data_histogram()
         fit_hists = binned_fit_result.fit_result.get_histograms()
-        fit_error_bars = binned_fit_result.get_error_bars()
+        fit_error_bars = binned_fit_result.get_error_bars(
+            bootstrap_mode=self.bootstrap_mode
+        )
         plt.style.use('gluex_ksks.thesis')
         if Wave.needs_full_plot(self.waves):
             fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
@@ -429,7 +418,7 @@ class PlotBinnedFit(Task):
             ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -446,13 +435,9 @@ class BinnedFitReport(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot: int,
     ):
         self.chisqdof = chisqdof
         self.waves = waves
-        self.nbins = nbins
-        self.nboot = nboot
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -464,13 +449,11 @@ class BinnedFitReport(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot,
             )
         ]
         outputs = [REPORTS_PATH / (inputs[0].outputs[0].stem + '.tex')]
         super().__init__(
-            f'binned_fit_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
+            f'binned_fit_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -553,7 +536,7 @@ class BinnedFitReport(Task):
                     else:
                         output_str += r'\midrule'
         output_str += rf"""
-    \caption{{The parameter values and uncertainties for the binned fit of {Wave.to_latex_string(self.waves)} waves to data with $\chi^2_\nu < {self.chisqdof:.2f}$. Uncertainties are calculated from the standard error over ${self.nboot}$ bootstrap iterations.}}\label{{tab:binned-fit-chisqdof-{self.chisqdof:.2f}-{Wave.to_kebab_string(self.waves)}}}
+    \caption{{The parameter values and uncertainties for the binned fit of {Wave.to_latex_string(self.waves)} waves to data with $\chi^2_\nu < {self.chisqdof:.2f}$. Uncertainties are calculated from the standard error over ${NBOOT}$ bootstrap iterations.}}\label{{tab:binned-fit-chisqdof-{self.chisqdof:.2f}-{Wave.to_kebab_string(self.waves)}}}
     \end{{longtable}}
 \end{{center}}
 % NLL = {sum([status.fx for status in binned_fit_result.fit_result.statuses])}
@@ -572,8 +555,6 @@ class GuidedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot: int,
     ):
         self.waves = waves
         wave_string = Wave.encode_waves(waves)
@@ -587,16 +568,14 @@ class GuidedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot,
             )
         ]
         outputs = [
             FITS_PATH
-            / f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}.pkl',
+            / f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}.pkl',
         ]
         super().__init__(
-            f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}',
+            f'guided_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -612,7 +591,7 @@ class GuidedFit(Task):
         fit_result = fit_guided(
             binned_fit_result,
             bootstrap_mode='SE',
-            iters=3,
+            iters=NRESTARTS_MIN_GUIDED,
             threads=NUM_THREADS,
             logger=self.logger,
         )
@@ -630,13 +609,10 @@ class PlotGuidedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot: int,
         bootstrap_mode: Literal['SE', 'CI', 'CI-BC'],
     ):
         self.waves = waves
-        self.nbins = nbins
-        self.nboot = nboot
+        self.bootstrap_mode = bootstrap_mode
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -648,8 +624,6 @@ class PlotGuidedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot,
             ),
             BinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -659,13 +633,11 @@ class PlotGuidedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot,
             ),
         ]
         outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
-            f'guided_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot}_{bootstrap_mode}',
+            f'guided_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -681,7 +653,9 @@ class PlotGuidedFit(Task):
         )
         data_hist = binned_fit_result.fit_result.get_data_histogram()
         fit_hists = binned_fit_result.fit_result.get_histograms()
-        fit_error_bars = binned_fit_result.get_error_bars()
+        fit_error_bars = binned_fit_result.get_error_bars(
+            bootstrap_mode=self.bootstrap_mode
+        )
         unbinned_fit_hists = guided_fit_result.fit_result.get_histograms(
             binned_fit_result.fit_result.binning
         )
@@ -849,7 +823,7 @@ class PlotGuidedFit(Task):
             ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -866,8 +840,6 @@ class UnbinnedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins_guided: int,
-        nboot_guided: int,
         guided: bool,
     ):
         self.waves = waves
@@ -912,16 +884,14 @@ class UnbinnedFit(Task):
                     method=method,
                     nspec=nspec,
                     waves=waves,
-                    nbins=nbins_guided,
-                    nboot=nboot_guided,
                 )
             )
         outputs = [
             FITS_PATH
-            / f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}.pkl',
+            / f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{"_guided" if guided else ""}.pkl',
         ]
         super().__init__(
-            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_boot_{nboot_guided}{"_guided" if guided else ""}',
+            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{"_guided" if guided else ""}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -953,7 +923,7 @@ class UnbinnedFit(Task):
             self.waves,
             analysis_path_set,
             p0=p0,
-            iters=3,
+            iters=NRESTARTS_MIN if not self.guided else 1,
             threads=NUM_THREADS,
             logger=self.logger,
         )
@@ -971,13 +941,9 @@ class UnbinnedFitUncertainty(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins_guided: int,
-        nboot_guided: int,
         guided: bool,
-        nboot: int,
     ):
         self.waves = waves
-        self.nboot = nboot
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -989,17 +955,12 @@ class UnbinnedFitUncertainty(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=nbins_guided,
-                nboot_guided=nboot_guided,
                 guided=guided,
             )
         ]
-        outputs = [
-            inputs[0].outputs[0].parent
-            / f'{inputs[0].outputs[0].stem}_boot_{nboot}.pkl'
-        ]
+        outputs = [inputs[0].outputs[0].parent / f'{inputs[0].outputs[0].stem}_unc.pkl']
         super().__init__(
-            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_boot_{nboot}',
+            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}_unc',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -1013,10 +974,14 @@ class UnbinnedFitUncertainty(Task):
         )
         result = calculate_bootstrap_uncertainty_unbinned(
             unbinned_fit_result,
-            nboot=self.nboot,
+            nboot=NBOOT,
             threads=NUM_THREADS,
             logger=self.logger,
         )
+        binning = Binning(NBINS, MESON_MASS_RANGE)
+        result.get_lower_center_upper(binning, bootstrap_mode='SE')
+        result.get_lower_center_upper(binning, bootstrap_mode='CI')
+        result.get_lower_center_upper(binning, bootstrap_mode='CI-BC')
         pickle.dump(result, self.outputs[0].open('wb'))
 
 
@@ -1031,12 +996,9 @@ class PlotUnbinnedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot_guided: int,
         guided: bool,
     ):
         self.waves = waves
-        self.nbins = nbins
         self.guided = guided
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
@@ -1049,14 +1011,12 @@ class PlotUnbinnedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=nbins,
-                nboot_guided=nboot_guided,
                 guided=guided,
             )
         ]
         outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + '.png')]
         super().__init__(
-            f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}',
+            f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
@@ -1070,7 +1030,7 @@ class PlotUnbinnedFit(Task):
             self.inputs[0].outputs[0].open('rb')
         )
         self.logger.info('Loaded fit result')
-        binning = Binning(self.nbins, MESON_MASS_RANGE)
+        binning = Binning(NBINS, MESON_MASS_RANGE)
         data_hist = unbinned_fit_result.get_data_histogram(binning)
         fit_hists = unbinned_fit_result.get_histograms(binning)
         self.logger.info('Computed histograms')
@@ -1160,7 +1120,7 @@ class PlotUnbinnedFit(Task):
             ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -1177,14 +1137,12 @@ class PlotUnbinnedFitUncertainty(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot_guided: int,
         guided: bool,
-        nboot: int,
+        bootstrap_mode: Literal['SE', 'CI', 'CI-BC'],
     ):
         self.waves = waves
-        self.nbins = nbins
         self.guided = guided
+        self.bootstrap_mode = bootstrap_mode
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -1196,15 +1154,12 @@ class PlotUnbinnedFitUncertainty(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=nbins,
-                nboot_guided=nboot_guided,
                 guided=guided,
-                nboot=nboot,
             )
         ]
-        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + '.png')]
+        outputs = [PLOTS_PATH / (inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png')]
         super().__init__(
-            f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}_unc_{nboot}',
+            f'unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
@@ -1218,10 +1173,12 @@ class PlotUnbinnedFitUncertainty(Task):
             self.inputs[0].outputs[0].open('rb')
         )
         self.logger.info('Loaded fit result')
-        binning = Binning(self.nbins, MESON_MASS_RANGE)
+        binning = Binning(NBINS, MESON_MASS_RANGE)
         data_hist = unbinned_fit_result.fit_result.get_data_histogram(binning)
         fit_hists = unbinned_fit_result.fit_result.get_histograms(binning)
-        fit_lcus = unbinned_fit_result.get_lower_center_upper(binning)
+        fit_lcus = unbinned_fit_result.get_lower_center_upper(
+            binning, bootstrap_mode=self.bootstrap_mode
+        )
         self.logger.info('Computed histograms')
         plt.style.use('gluex_ksks.thesis')
         if Wave.needs_full_plot(self.waves):
@@ -1341,7 +1298,7 @@ class PlotUnbinnedFitUncertainty(Task):
             ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -1358,15 +1315,11 @@ class UnbinnedFitReport(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins_guided: int,
-        nboot_guided: int,
         guided: bool,
-        nboot: int,
     ):
         self.chisqdof = chisqdof
         self.waves = waves
         self.guided = guided
-        self.nboot = nboot
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -1378,15 +1331,12 @@ class UnbinnedFitReport(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=nbins_guided,
-                nboot_guided=nboot_guided,
                 guided=guided,
-                nboot=nboot,
             )
         ]
         outputs = [REPORTS_PATH / (inputs[0].outputs[0].stem + '.tex')]
         super().__init__(
-            f'unbinned_fit_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins_guided}_{nboot_guided}_{guided}_{nboot}',
+            f'unbinned_fit_report{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -1465,7 +1415,7 @@ class UnbinnedFitReport(Task):
 
         output_str += rf"""\bottomrule
         \end{{tabular}}
-    \caption{{The parameter values and uncertainties for the unbinned {'(guided) ' if self.guided else ''}fit of {Wave.to_latex_string(self.waves)} waves to data with $\chi^2_\nu < {self.chisqdof:.2f}$. Uncertainties are calculated from the standard error over ${self.nboot}$ bootstrap iterations.}}\label{{tab:unbinned-fit-chisqdof-{self.chisqdof:.1f}{'-guided' if self.guided else ''}-{Wave.to_kebab_string(self.waves)}}}
+    \caption{{The parameter values and uncertainties for the unbinned {'(guided) ' if self.guided else ''}fit of {Wave.to_latex_string(self.waves)} waves to data with $\chi^2_\nu < {self.chisqdof:.2f}$. Uncertainties are calculated from the standard error over ${NBOOT}$ bootstrap iterations.}}\label{{tab:unbinned-fit-chisqdof-{self.chisqdof:.1f}{'-guided' if self.guided else ''}-{Wave.to_kebab_string(self.waves)}}}
     \end{{center}}
 \end{{table}}
 % NLL = {status.fx}
@@ -1484,13 +1434,12 @@ class PlotUnbinnedAndBinnedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot_guided: int,
         guided: bool,
+        bootstrap_mode: Literal['SE', 'CI', 'CI-BC'],
     ):
         self.waves = waves
-        self.nbins = nbins
         self.guided = guided
+        self.bootstrap_mode = bootstrap_mode
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -1502,8 +1451,6 @@ class PlotUnbinnedAndBinnedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot_guided,
             ),
             UnbinnedFit(
                 protonz_cut=protonz_cut,
@@ -1513,17 +1460,15 @@ class PlotUnbinnedAndBinnedFit(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=nbins,
-                nboot_guided=nboot_guided,
                 guided=guided,
             ),
         ]
         outputs = [
             PLOTS_PATH
-            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}{"_guided" if guided else ""}.png',
+            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{"_guided" if guided else ""}_{bootstrap_mode}.png',
         ]
         super().__init__(
-            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}',
+            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
@@ -1542,7 +1487,9 @@ class PlotUnbinnedAndBinnedFit(Task):
         self.logger.info('Loaded fit results')
         data_hist = binned_fit_result.fit_result.get_data_histogram()
         binned_fit_hists = binned_fit_result.fit_result.get_histograms()
-        binned_fit_error_bars = binned_fit_result.get_error_bars()
+        binned_fit_error_bars = binned_fit_result.get_error_bars(
+            bootstrap_mode=self.bootstrap_mode
+        )
         unbinned_fit_hists = unbinned_fit_result.get_histograms(
             binned_fit_result.fit_result.binning
         )
@@ -1711,7 +1658,7 @@ class PlotUnbinnedAndBinnedFit(Task):
             ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -1728,14 +1675,14 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
-        nbins: int,
-        nboot_guided: int,
         guided: bool,
-        nboot: int,
+        bootstrap_mode_binned: Literal['SE', 'CI', 'CI-BC'],
+        bootstrap_mode_unbinned: Literal['SE', 'CI', 'CI-BC'],
     ):
         self.waves = waves
-        self.nbins = nbins
         self.guided = guided
+        self.bootstrap_mode_binned = bootstrap_mode_binned
+        self.bootstrap_mode_unbinned = bootstrap_mode_unbinned
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -1747,8 +1694,6 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=nbins,
-                nboot=nboot_guided,
             ),
             UnbinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -1758,18 +1703,15 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=nbins,
-                nboot_guided=nboot_guided,
                 guided=guided,
-                nboot=nboot,
             ),
         ]
         outputs = [
             PLOTS_PATH
-            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}{"_guided" if guided else ""}_unc.png',
+            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{"_guided" if guided else ""}_{bootstrap_mode_binned}_{bootstrap_mode_unbinned}.png',
         ]
         super().__init__(
-            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}_boot_{nboot_guided}_{guided}_unc',
+            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}_{bootstrap_mode_binned}_{bootstrap_mode_unbinned}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
@@ -1786,12 +1728,16 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
             self.inputs[1].outputs[0].open('rb')
         )
         self.logger.info('Loaded fit result')
-        binning = Binning(self.nbins, MESON_MASS_RANGE)
+        binning = Binning(NBINS, MESON_MASS_RANGE)
         data_hist = binned_fit_result.fit_result.get_data_histogram()
         binned_fit_hists = binned_fit_result.fit_result.get_histograms()
-        binned_fit_error_bars = binned_fit_result.get_error_bars()
+        binned_fit_error_bars = binned_fit_result.get_error_bars(
+            bootstrap_mode=self.bootstrap_mode_binned
+        )
         fit_hists = unbinned_fit_result.fit_result.get_histograms(binning)
-        fit_lcus = unbinned_fit_result.get_lower_center_upper(binning)
+        fit_lcus = unbinned_fit_result.get_lower_center_upper(
+            binning, bootstrap_mode=self.bootstrap_mode_unbinned
+        )
         self.logger.info('Computed histograms')
         plt.style.use('gluex_ksks.thesis')
         if Wave.needs_full_plot(self.waves):
@@ -1987,7 +1933,7 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
             ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -2016,8 +1962,6 @@ class ProcessBinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot=NBOOT,
                 bootstrap_mode='CI-BC',
             ),
             BinnedFitReport(
@@ -2028,8 +1972,6 @@ class ProcessBinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot=NBOOT,
             ),
         ]
         outputs = []
@@ -2067,8 +2009,6 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot=NBOOT,
                 bootstrap_mode='CI-BC',
             ),
             BinnedFitReport(
@@ -2079,8 +2019,6 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot=NBOOT,
             ),
             PlotUnbinnedFit(
                 protonz_cut=protonz_cut,
@@ -2090,8 +2028,6 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=False,
             ),
             PlotGuidedFit(
@@ -2102,8 +2038,6 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot=NBOOT,
                 bootstrap_mode='CI-BC',
             ),
             PlotUnbinnedFit(
@@ -2114,8 +2048,6 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=True,
             ),
             PlotUnbinnedFitUncertainty(
@@ -2126,10 +2058,8 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=False,
-                nboot=NBOOT,
+                bootstrap_mode='CI-BC',
             ),
             PlotUnbinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -2139,10 +2069,8 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=True,
-                nboot=NBOOT,
+                bootstrap_mode='CI-BC',
             ),
             UnbinnedFitReport(
                 protonz_cut=protonz_cut,
@@ -2152,10 +2080,7 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=False,
-                nboot=NBOOT,
             ),
             UnbinnedFitReport(
                 protonz_cut=protonz_cut,
@@ -2165,10 +2090,7 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins_guided=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=True,
-                nboot=NBOOT,
             ),
             PlotUnbinnedAndBinnedFit(
                 protonz_cut=protonz_cut,
@@ -2178,9 +2100,8 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=False,
+                bootstrap_mode='CI-BC',
             ),
             PlotUnbinnedAndBinnedFit(
                 protonz_cut=protonz_cut,
@@ -2190,9 +2111,8 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=True,
+                bootstrap_mode='CI-BC',
             ),
             PlotUnbinnedAndBinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -2202,10 +2122,9 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=False,
-                nboot=NBOOT,
+                bootstrap_mode_binned='CI-BC',
+                bootstrap_mode_unbinned='CI-BC',
             ),
             PlotUnbinnedAndBinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -2215,10 +2134,9 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                nbins=MESON_MASS_BINS,
-                nboot_guided=NBOOT,
                 guided=True,
-                nboot=NBOOT,
+                bootstrap_mode_binned='CI-BC',
+                bootstrap_mode_unbinned='CI-BC',
             ),
         ]
         outputs = []

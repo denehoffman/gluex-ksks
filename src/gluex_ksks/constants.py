@@ -282,8 +282,11 @@ MAX_FITS = 2
 _n_threads = available_parallelism()
 NUM_THREADS = (_n_threads - 1) // 2 if available_parallelism() > 2 else 1
 N_WORKERS = min(available_parallelism() // 4, 12)
-GUIDED_MAX_STEPS = 250
-NBOOT = 30
+GUIDED_MAX_STEPS = 400
+NBINS = MESON_MASS_BINS  # for fits and fit plots only
+NBOOT = 100
+NRESTARTS_MIN = 10
+NRESTARTS_MIN_GUIDED = 10
 
 # These are dates in the month after the last calibration update for each REST version
 REST_VERSION_TIMESTAMPS = {

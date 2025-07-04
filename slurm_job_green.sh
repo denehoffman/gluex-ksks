@@ -9,5 +9,5 @@
 
 source /home/nhoffman/.venv/bin/activate
 cd "$PWD" || exit
-python3 -m gluex_ksks --chisqdof="$1"
+python3 -m gluex_ksks --chisqdof="$1" --waves="$2"
 echo "Done!"
