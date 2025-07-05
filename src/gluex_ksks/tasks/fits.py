@@ -1,6 +1,3 @@
-from gluex_ksks.constants import NRESTARTS_MIN_GUIDED
-from gluex_ksks.constants import NRESTARTS_MIN
-from gluex_ksks.constants import NBINS
 import pickle
 from typing import Literal, override
 
@@ -15,7 +12,10 @@ from gluex_ksks.constants import (
     GRAY,
     LOG_PATH,
     MESON_MASS_RANGE,
+    NBINS,
     NBOOT,
+    NRESTARTS_MIN,
+    NRESTARTS_MIN_GUIDED,
     NUM_THREADS,
     PLOTS_PATH,
     REPORTS_PATH,
@@ -130,8 +130,10 @@ class BinnedFit(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
+        nbins: int = NBINS,
     ):
         self.waves = waves
+        self.nbins = nbins
         wave_string = Wave.encode_waves(waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -164,10 +166,10 @@ class BinnedFit(Task):
         ]
         outputs = [
             FITS_PATH
-            / f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}.pkl',
+            / f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}bins.pkl',
         ]
         super().__init__(
-            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
+            f'binned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -189,7 +191,7 @@ class BinnedFit(Task):
                 )
             ]
         )
-        binning = Binning(NBINS, MESON_MASS_RANGE)
+        binning = Binning(self.nbins, MESON_MASS_RANGE)
         fit_result = fit_binned(
             self.waves,
             analysis_path_set,
@@ -212,6 +214,7 @@ class BinnedFitUncertainty(Task):
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
         waves: list[Wave],
+        nbins: int = NBINS,
     ):
         self.waves = waves
         wave_string = Wave.encode_waves(waves)
@@ -225,11 +228,12 @@ class BinnedFitUncertainty(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
+                nbins=nbins,
             )
         ]
         outputs = [inputs[0].outputs[0].parent / f'{inputs[0].outputs[0].stem}_unc.pkl']
         super().__init__(
-            f'binned_fit_unc{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}',
+            f'binned_fit_unc{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{nbins}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},

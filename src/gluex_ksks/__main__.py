@@ -4,7 +4,6 @@ from modak import TaskQueue
 from gluex_ksks.constants import (
     MAX_FITS,
     N_WORKERS,
-    NBOOT,
     STATE_PATH,
     mkdirs,
     LOG_PATH,
@@ -66,11 +65,7 @@ def main(chisqdof: float, waves: str):
             [Wave(0, 0, '+'), Wave(0, 0, '-'), Wave(2, 2, '+'), Wave(2, 2, '-')],
         )
     mkdirs()
-    state_file_path = STATE_PATH
-    if chisqdof != DEFAULT_CHISQDOF:
-        state_file_path = state_file_path.parent / (
-            state_file_path.name + f'-{chisqdof:.2f}'
-        )
+    state_file_path = STATE_PATH.parent / (STATE_PATH.name + f'-{chisqdof:.2f}-{waves}')
     tq = TaskQueue(
         workers=N_WORKERS,
         resources={'fit': MAX_FITS, 'fitplot': 1},
@@ -189,7 +184,6 @@ def main(chisqdof: float, waves: str):
                     select_mesons=True,
                     method='free',
                     nspec=2,
-                    nboot=NBOOT,
                     bootstrap_mode='CI-BC',
                 ),
                 PlotAll(
