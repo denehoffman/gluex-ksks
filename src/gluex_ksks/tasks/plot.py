@@ -1,8 +1,11 @@
 from typing import Literal, override
+
+import matplotlib.pyplot as plt
+import numpy as np
+import polars as pl
 from matplotlib import patches
 from modak import Task
 
-import numpy as np
 from gluex_ksks.constants import (
     BARYON_MASS_2D_BINS,
     BARYON_MASS_BINS,
@@ -57,7 +60,6 @@ from gluex_ksks.constants import (
     YOUDENJ_RANGE,
 )
 from gluex_ksks.tasks.cuts import FiducialCuts
-import polars as pl
 from gluex_ksks.tasks.splot import SPlotWeights
 from gluex_ksks.utils import (
     add_alt_hypos,
@@ -65,10 +67,9 @@ from gluex_ksks.utils import (
     add_ksb_costheta,
     add_m_baryon,
     add_m_meson,
-    select_mesons_tag,
     custom_colormap,
+    select_mesons_tag,
 )
-import matplotlib.pyplot as plt
 
 CMAP, NORM = custom_colormap()
 

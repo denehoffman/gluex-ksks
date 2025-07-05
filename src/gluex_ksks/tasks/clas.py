@@ -1,22 +1,22 @@
 import pickle
 from typing import Literal, override
-from modak import Task
 
 import matplotlib.pyplot as plt
 import numpy as np
+from modak import Task
 
 from gluex_ksks.constants import (
     BLACK,
     BLUE,
     LOG_PATH,
     MESON_MASS_RANGE,
+    NBINS_CLAS,
     PLOTS_PATH,
 )
 from gluex_ksks.pwa import BinnedFitResultUncertainty
 from gluex_ksks.tasks.fits import BinnedFitUncertainty
 from gluex_ksks.utils import select_mesons_tag
 from gluex_ksks.wave import Wave
-
 
 CLAS_EDGES = np.arange(1.0, 1.90, 0.05)
 CLAS_S_WAVE_FRAC = np.array(
@@ -115,12 +115,9 @@ class PlotCLASComparison(Task):
         select_mesons: bool | None,
         method: Literal['fixed', 'free'] | None,
         nspec: int | None,
-        nboot: int,
         bootstrap_mode: Literal['SE', 'CI', 'CI-BC'],
     ):
         self.waves = [Wave(0, 0, '+'), Wave(2, 2, '+')]
-        self.nbins = 20
-        self.nboot = nboot
         wave_string = Wave.encode_waves(self.waves)
         tag = select_mesons_tag(select_mesons)
         inputs: list[Task] = [
@@ -132,8 +129,7 @@ class PlotCLASComparison(Task):
                 method=method,
                 nspec=nspec,
                 waves=self.waves,
-                nbins=self.nbins,
-                nboot=nboot,
+                nbins=NBINS_CLAS,
             )
         ]
         outputs = [
@@ -145,7 +141,7 @@ class PlotCLASComparison(Task):
             / ('CLAS_sideband_' + inputs[0].outputs[0].stem + f'_{bootstrap_mode}.png'),
         ]
         super().__init__(
-            f'clas_comparison_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{self.nbins}_boot_{nboot}_{bootstrap_mode}',
+            f'clas_comparison_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{bootstrap_mode}',
             inputs=inputs,
             outputs=outputs,
             log_directory=LOG_PATH,
@@ -303,7 +299,7 @@ class PlotCLASComparison(Task):
         ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS_CLAS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[0])
         plt.close()
@@ -401,7 +397,7 @@ class PlotCLASComparison(Task):
         ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS_CLAS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[1])
         plt.close()
@@ -499,7 +495,7 @@ class PlotCLASComparison(Task):
         ax[1].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
-        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / self.nbins * 1000)
+        bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS_CLAS * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.savefig(self.outputs[2])
         plt.close()

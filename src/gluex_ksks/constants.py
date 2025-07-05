@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from numpy import pi
+
 from laddu import available_parallelism
+from numpy import pi
 
 DATA_TYPES = ['data', 'sigmc', 'bkgmc', 'bggen']
 
@@ -284,6 +285,7 @@ NUM_THREADS = (_n_threads - 1) // 2 if available_parallelism() > 2 else 1
 N_WORKERS = min(available_parallelism() // 4, 12)
 GUIDED_MAX_STEPS = 400
 NBINS = MESON_MASS_BINS  # for fits and fit plots only
+NBINS_CLAS = 20
 NBOOT = 100
 NRESTARTS_MIN = 10
 NRESTARTS_MIN_GUIDED = 10
