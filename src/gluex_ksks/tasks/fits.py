@@ -248,9 +248,7 @@ class BinnedFitUncertainty(Task):
         result = calculate_bootstrap_uncertainty_binned(
             binned_fit_result, nboot=NBOOT, threads=NUM_THREADS, logger=self.logger
         )
-        result.get_lower_center_upper(bootstrap_mode='SE')
-        result.get_lower_center_upper(bootstrap_mode='CI')
-        result.get_lower_center_upper(bootstrap_mode='CI-BC')
+        result.fill_cache()
         pickle.dump(result, self.outputs[0].open('wb'))
 
 
@@ -983,9 +981,7 @@ class UnbinnedFitUncertainty(Task):
             logger=self.logger,
         )
         binning = Binning(NBINS, MESON_MASS_RANGE)
-        result.get_lower_center_upper(binning, bootstrap_mode='SE')
-        result.get_lower_center_upper(binning, bootstrap_mode='CI')
-        result.get_lower_center_upper(binning, bootstrap_mode='CI-BC')
+        result.fill_cache(binning)
         pickle.dump(result, self.outputs[0].open('wb'))
 
 
