@@ -8,7 +8,6 @@ from numpy import pi
 DATA_TYPES = ['data', 'sigmc', 'bkgmc', 'bggen']
 
 ANALYSIS_PATH = Path.cwd() / 'analysis'
-STATE_PATH = Path.cwd() / '.modak'
 LOG_PATH = ANALYSIS_PATH / 'logs'
 RAW_DATASETS_PATH = ANALYSIS_PATH / 'raw_datasets'
 DATASETS_PATH = ANALYSIS_PATH / 'datasets'
