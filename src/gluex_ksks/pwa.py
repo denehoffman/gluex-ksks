@@ -221,7 +221,7 @@ class GuidedLoggingObserver(ld.Observer):
 
     @override
     def callback(self, step: int, status: ld.Status) -> tuple[ld.Status, bool]:
-        if step % 20:
+        if step % 20 == 0:
             self.logger.info(f'Step {step}: {status.fx} ({status.fx / self.ndof})')
         fig, ax = plt.subplots(
             nrows=len(self.nlls) + 1,
