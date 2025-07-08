@@ -221,7 +221,8 @@ class GuidedLoggingObserver(ld.Observer):
 
     @override
     def callback(self, step: int, status: ld.Status) -> tuple[ld.Status, bool]:
-        self.logger.info(f'Step {step}: {status.fx} ({status.fx / self.ndof})')
+        if step % 20:
+            self.logger.info(f'Step {step}: {status.fx} ({status.fx / self.ndof})')
         fig, ax = plt.subplots(
             nrows=len(self.nlls) + 1,
             ncols=len(self.wavesets),
@@ -467,7 +468,6 @@ def fit_binned(
             p_init = rng.uniform(-init_mag, init_mag, len(nll.parameters))
             status = nll.minimize(
                 p_init,
-                observers=[LoggingObserver(logger)],
                 threads=threads,
                 skip_hessian=True,
             )
@@ -643,7 +643,6 @@ def fit_unbinned(
         )
         status = nll.minimize(
             [float(p) for p in p_init],
-            observers=[LoggingObserver(logger)],
             threads=threads,
             skip_hessian=True,
         )
@@ -890,6 +889,8 @@ def calculate_bootstrap_uncertainty_binned(
         logger.info(f'Bootstrapping {ibin=}')
         bin_samples: list[FloatArray] = []
         for iboot in range(nboot):
+            if iboot % 10 == 0:
+                print(f'Bootstrapping iteration {iboot}')
             manager = ld.LikelihoodManager()
             bin_model = ld.likelihood_sum(
                 [
@@ -906,7 +907,6 @@ def calculate_bootstrap_uncertainty_binned(
             nll = manager.load(bin_model)
             status = nll.minimize(
                 fit_result.statuses[ibin].x,
-                observers=[LoggingObserver(logger)],
                 threads=threads,
                 skip_hessian=True,
             )
@@ -1092,7 +1092,8 @@ def calculate_bootstrap_uncertainty_unbinned(
     samples: list[FloatArray] = []
     logger.info('Bootstrapping Unbinned fit')
     for iboot in range(nboot):
-        logger.debug(f'Bootstrapping iteration {iboot}')
+        if iboot % 10 == 0:
+            print(f'Bootstrapping iteration {iboot}')
         manager = ld.LikelihoodManager()
         bin_model = ld.likelihood_sum(
             [
