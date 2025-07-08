@@ -890,7 +890,7 @@ def calculate_bootstrap_uncertainty_binned(
         bin_samples: list[FloatArray] = []
         for iboot in range(nboot):
             if iboot % 10 == 0:
-                print(f'Bootstrapping iteration {iboot}')
+                logger.info(f'Bootstrapping iteration {iboot}')
             manager = ld.LikelihoodManager()
             bin_model = ld.likelihood_sum(
                 [
@@ -1093,7 +1093,7 @@ def calculate_bootstrap_uncertainty_unbinned(
     logger.info('Bootstrapping Unbinned fit')
     for iboot in range(nboot):
         if iboot % 10 == 0:
-            print(f'Bootstrapping iteration {iboot}')
+            logger.info(f'Bootstrapping iteration {iboot}')
         manager = ld.LikelihoodManager()
         bin_model = ld.likelihood_sum(
             [
