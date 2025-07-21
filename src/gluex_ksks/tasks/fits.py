@@ -332,7 +332,7 @@ class PlotBinnedFit(Task):
                     wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Binned)',
                 )
@@ -382,7 +382,7 @@ class PlotBinnedFit(Task):
                     wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Binned)',
                 )
