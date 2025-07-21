@@ -248,7 +248,9 @@ class BinnedFitUncertainty(Task):
         result = calculate_bootstrap_uncertainty_binned(
             binned_fit_result, nboot=NBOOT, threads=NUM_THREADS, logger=self.logger
         )
-        result.fill_cache()
+        result.fill_cache(confidence_percent=68)
+        result.fill_cache(confidence_percent=90)
+        result.fill_cache(confidence_percent=95)
         pickle.dump(result, self.outputs[0].open('wb'))
 
 
@@ -311,41 +313,28 @@ class PlotBinnedFit(Task):
                         color=BLACK,
                         label='Data',
                     )
-                    fit_hist = fit_hists[Wave.encode_waves(self.waves)]
-                    err = fit_error_bars[Wave.encode_waves(self.waves)]
-                    centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
                     ax[i][j].errorbar(
-                        centers,
-                        fit_hist.counts,
-                        yerr=0,
-                        fmt='.',
-                        markersize=3,
-                        color=GRAY,
-                        label='Fit Total',
-                    )
-                    ax[i][j].errorbar(
-                        centers,
-                        err[1],
-                        yerr=(err[0], err[2]),
+                        data_hist.centers,
+                        data_hist.counts,
+                        yerr=data_hist.errors,
                         fmt='none',
-                        color=GRAY,
+                        color=BLACK,
                     )
             for wave in self.waves:
                 wave_hist = fit_hists[Wave.encode(wave)]
                 err = fit_error_bars[Wave.encode(wave)]
-                centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
                 plot_index = wave.plot_index(double=False)
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     wave_hist.counts,
                     yerr=0,
                     fmt='.',
                     markersize=3,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
@@ -375,40 +364,27 @@ class PlotBinnedFit(Task):
                     color=BLACK,
                     label='Data',
                 )
-                fit_hist = fit_hists[Wave.encode_waves(self.waves)]
-                err = fit_error_bars[Wave.encode_waves(self.waves)]
-                centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
                 ax[i].errorbar(
-                    centers,
-                    fit_hist.counts,
-                    yerr=0,
-                    fmt='.',
-                    markersize=3,
-                    color=GRAY,
-                    label='Fit Total',
-                )
-                ax[i].errorbar(
-                    centers,
-                    err[1],
-                    yerr=(err[0], err[2]),
+                    data_hist.centers,
+                    data_hist.counts,
+                    yerr=data_hist.errors,
                     fmt='none',
-                    color=GRAY,
+                    color=BLACK,
                 )
             for wave in self.waves:
                 wave_hist = fit_hists[Wave.encode(wave)]
                 err = fit_error_bars[Wave.encode(wave)]
-                centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     wave_hist.counts,
                     yerr=0,
                     fmt='.',
                     markersize=3,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
@@ -674,54 +650,39 @@ class PlotGuidedFit(Task):
                         color=BLACK,
                         label='Data',
                     )
-                    fit_hist = fit_hists[Wave.encode_waves(self.waves)]
+                    ax[i][j].errorbar(
+                        data_hist.centers,
+                        data_hist.counts,
+                        yerr=data_hist.errors,
+                        fmt='none',
+                        color=BLACK,
+                    )
                     unbinned_fit_hist = unbinned_fit_hists[
                         Wave.encode_waves(self.waves)
                     ]
-                    err = fit_error_bars[Wave.encode_waves(self.waves)]
-                    centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
-                    ax[i][j].errorbar(
-                        centers,
-                        fit_hist.counts,
-                        yerr=0,
-                        fmt='.',
-                        markersize=3,
-                        color=GRAY,
-                        label='Fit Total',
-                    )
-                    ax[i][j].errorbar(
-                        centers,
-                        err[1],
-                        yerr=(err[0], err[2]),
-                        fmt='none',
-                        color=GRAY,
-                    )
                     ax[i][j].stairs(
                         unbinned_fit_hist.counts,
                         unbinned_fit_hist.bins,
                         color=GRAY,
-                        label='Fit (Guided)',
-                        fill=True,
-                        alpha=0.2,
-                        lw=0.2,
+                        label='Fit (Guided Start)',
+                        lw=0.7,
                     )
             for wave in self.waves:
                 wave_hist = fit_hists[Wave.encode(wave)]
                 unbinned_wave_hist = unbinned_fit_hists[Wave.encode(wave)]
                 err = fit_error_bars[Wave.encode(wave)]
-                centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
                 plot_index = wave.plot_index(double=False)
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
@@ -731,10 +692,7 @@ class PlotGuidedFit(Task):
                     unbinned_wave_hist.counts,
                     unbinned_wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Guided)',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
+                    label=f'{wave.latex} (Guided Start)',
                 )
             for i in {0, 1}:
                 for j in {0, 1, 2}:
@@ -760,51 +718,29 @@ class PlotGuidedFit(Task):
                     color=BLACK,
                     label='Data',
                 )
-                fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                 unbinned_fit_hist = unbinned_fit_hists[Wave.encode_waves(self.waves)]
-                err = fit_error_bars[Wave.encode_waves(self.waves)]
-                centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
-                ax[i].errorbar(
-                    centers,
-                    fit_hist.counts,
-                    yerr=0,
-                    fmt='.',
-                    markersize=3,
-                    color=GRAY,
-                    label='Fit Total',
-                )
-                ax[i].errorbar(
-                    centers,
-                    err[1],
-                    yerr=(err[0], err[2]),
-                    fmt='none',
-                    color=GRAY,
-                )
                 ax[i].stairs(
                     unbinned_fit_hist.counts,
                     unbinned_fit_hist.bins,
                     color=GRAY,
-                    label='Fit (Guided)',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
+                    label='Fit (Guided Start)',
+                    lw=0.7,
                 )
             for wave in self.waves:
                 wave_hist = fit_hists[Wave.encode(wave)]
                 unbinned_wave_hist = unbinned_fit_hists[Wave.encode(wave)]
                 err = fit_error_bars[Wave.encode(wave)]
-                centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
@@ -814,10 +750,7 @@ class PlotGuidedFit(Task):
                     unbinned_wave_hist.counts,
                     unbinned_wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Guided)',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
+                    label=f'{wave.latex} (Guided Start)',
                 )
             ax[0].legend()
             ax[1].legend()
@@ -981,7 +914,9 @@ class UnbinnedFitUncertainty(Task):
             logger=self.logger,
         )
         binning = Binning(NBINS, MESON_MASS_RANGE)
-        result.fill_cache(binning)
+        result.fill_cache(binning, confidence_percent=68)
+        result.fill_cache(binning, confidence_percent=90)
+        result.fill_cache(binning, confidence_percent=95)
         pickle.dump(result, self.outputs[0].open('wb'))
 
 
@@ -1047,15 +982,20 @@ class PlotUnbinnedFit(Task):
                         color=BLACK,
                         label='Data',
                     )
+                    ax[i][j].errorbar(
+                        data_hist.centers,
+                        data_hist.counts,
+                        yerr=data_hist.errors,
+                        fmt='none',
+                        color=BLACK,
+                    )
                     fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                     ax[i][j].stairs(
                         fit_hist.counts,
                         fit_hist.bins,
                         color=GRAY,
                         label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                        fill=True,
-                        alpha=0.2,
-                        lw=0.2,
+                        lw=0.7,
                     )
             for wave in self.waves:
                 wave_hist = fit_hists[Wave.encode(wave)]
@@ -1065,9 +1005,6 @@ class PlotUnbinnedFit(Task):
                     wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
                 )
             for i in {0, 1}:
                 for j in {0, 1, 2}:
@@ -1093,15 +1030,20 @@ class PlotUnbinnedFit(Task):
                     color=BLACK,
                     label='Data',
                 )
+                ax[i].errorbar(
+                    data_hist.centers,
+                    data_hist.counts,
+                    yerr=data_hist.errors,
+                    fmt='none',
+                    color=BLACK,
+                )
                 fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                 ax[i].stairs(
                     fit_hist.counts,
                     fit_hist.bins,
                     color=GRAY,
                     label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
+                    lw=0.7,
                 )
             for wave in self.waves:
                 wave_hist = fit_hists[Wave.encode(wave)]
@@ -1110,9 +1052,6 @@ class PlotUnbinnedFit(Task):
                     wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
                 )
             ax[0].legend()
             ax[1].legend()
@@ -1193,13 +1132,20 @@ class PlotUnbinnedFitUncertainty(Task):
                         color=BLACK,
                         label='Data',
                     )
+                    ax[i][j].errorbar(
+                        data_hist.centers,
+                        data_hist.counts,
+                        yerr=data_hist.errors,
+                        fmt='none',
+                        color=BLACK,
+                    )
                     fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                     ax[i][j].stairs(
                         fit_hist.counts,
                         fit_hist.bins,
                         color=GRAY,
                         label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                        lw=0.2,
+                        lw=0.7,
                     )
                     fit_lcu = fit_lcus[Wave.encode_waves(self.waves)]
                     ax[i][j].stairs(
@@ -1219,7 +1165,6 @@ class PlotUnbinnedFitUncertainty(Task):
                     wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    lw=0.2,
                 )
                 fit_lcu = fit_lcus[Wave.encode(wave)]
                 ax[plot_index[0]][plot_index[1]].stairs(
@@ -1255,13 +1200,20 @@ class PlotUnbinnedFitUncertainty(Task):
                     color=BLACK,
                     label='Data',
                 )
+                ax[i].errorbar(
+                    data_hist.centers,
+                    data_hist.counts,
+                    yerr=data_hist.errors,
+                    fmt='none',
+                    color=BLACK,
+                )
                 fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                 ax[i].stairs(
                     fit_hist.counts,
                     fit_hist.bins,
                     color=GRAY,
                     label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                    lw=0.2,
+                    lw=0.7,
                 )
                 fit_lcu = fit_lcus[Wave.encode_waves(self.waves)]
                 ax[i].stairs(
@@ -1280,7 +1232,6 @@ class PlotUnbinnedFitUncertainty(Task):
                     wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    lw=0.2,
                 )
                 fit_lcu = fit_lcus[Wave.encode(wave)]
                 ax[wave.plot_index(double=True)[0]].stairs(
@@ -1507,67 +1458,47 @@ class PlotUnbinnedAndBinnedFit(Task):
                         color=BLACK,
                         label='Data',
                     )
-                    binned_fit_hist = binned_fit_hists[Wave.encode_waves(self.waves)]
-                    err = binned_fit_error_bars[Wave.encode_waves(self.waves)]
-                    centers = (binned_fit_hist.bins[1:] + binned_fit_hist.bins[:-1]) / 2
                     ax[i][j].errorbar(
-                        centers,
-                        binned_fit_hist.counts,
-                        yerr=0,
-                        fmt='.',
-                        markersize=3,
-                        color=GRAY,
-                        label='Fit Total',
-                    )
-                    ax[i][j].errorbar(
-                        centers,
-                        err[1],
-                        yerr=(err[0], err[2]),
+                        data_hist.centers,
+                        data_hist.counts,
+                        yerr=data_hist.errors,
                         fmt='none',
-                        color=GRAY,
+                        color=BLACK,
                     )
-                    unbinned_fit_hist = unbinned_fit_hists[
-                        Wave.encode_waves(self.waves)
-                    ]
+                    fit_hist = unbinned_fit_hists[Wave.encode_waves(self.waves)]
                     ax[i][j].stairs(
-                        unbinned_fit_hist.counts,
-                        unbinned_fit_hist.bins,
+                        fit_hist.counts,
+                        fit_hist.bins,
                         color=GRAY,
                         label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                        fill=True,
-                        alpha=0.2,
-                        lw=0.2,
+                        lw=0.7,
                     )
             for wave in self.waves:
                 plot_index = wave.plot_index(double=False)
                 binned_wave_hist = binned_fit_hists[Wave.encode(wave)]
                 err = binned_fit_error_bars[Wave.encode(wave)]
-                centers = (binned_wave_hist.bins[1:] + binned_wave_hist.bins[:-1]) / 2
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     binned_wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
                     color=wave.plot_color,
                 )
-                unbinned_wave_hist = unbinned_fit_hists[Wave.encode(wave)]
+                wave_hist = unbinned_fit_hists[Wave.encode(wave)]
                 ax[plot_index[0]][plot_index[1]].stairs(
-                    unbinned_wave_hist.counts,
-                    unbinned_wave_hist.bins,
+                    wave_hist.counts,
+                    wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
                 )
             for i in {0, 1}:
                 for j in {0, 1, 2}:
@@ -1593,64 +1524,46 @@ class PlotUnbinnedAndBinnedFit(Task):
                     color=BLACK,
                     label='Data',
                 )
-                binned_fit_hist = binned_fit_hists[Wave.encode_waves(self.waves)]
-                err = binned_fit_error_bars[Wave.encode_waves(self.waves)]
-                centers = (binned_fit_hist.bins[1:] + binned_fit_hist.bins[:-1]) / 2
                 ax[i].errorbar(
-                    centers,
-                    binned_fit_hist.counts,
-                    yerr=0,
-                    fmt='.',
-                    markersize=3,
-                    color=GRAY,
-                    label='Fit Total',
-                )
-                ax[i].errorbar(
-                    centers,
-                    err[1],
-                    yerr=(err[0], err[2]),
+                    data_hist.centers,
+                    data_hist.counts,
+                    yerr=data_hist.errors,
                     fmt='none',
-                    color=GRAY,
+                    color=BLACK,
                 )
-                unbinned_fit_hist = unbinned_fit_hists[Wave.encode_waves(self.waves)]
+                fit_hist = unbinned_fit_hists[Wave.encode_waves(self.waves)]
                 ax[i].stairs(
-                    unbinned_fit_hist.counts,
-                    unbinned_fit_hist.bins,
+                    fit_hist.counts,
+                    fit_hist.bins,
                     color=GRAY,
                     label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
+                    lw=0.7,
                 )
             for wave in self.waves:
                 binned_wave_hist = binned_fit_hists[Wave.encode(wave)]
                 err = binned_fit_error_bars[Wave.encode(wave)]
-                centers = (binned_wave_hist.bins[1:] + binned_wave_hist.bins[:-1]) / 2
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     binned_wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
                     color=wave.plot_color,
                 )
-                unbinned_wave_hist = unbinned_fit_hists[Wave.encode(wave)]
+                wave_hist = unbinned_fit_hists[Wave.encode(wave)]
                 ax[wave.plot_index(double=True)[0]].stairs(
-                    unbinned_wave_hist.counts,
-                    unbinned_wave_hist.bins,
+                    wave_hist.counts,
+                    wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    fill=True,
-                    alpha=0.2,
-                    lw=0.2,
                 )
             ax[0].legend()
             ax[1].legend()
@@ -1752,24 +1665,12 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                         color=BLACK,
                         label='Data',
                     )
-                    binned_fit_hist = binned_fit_hists[Wave.encode_waves(self.waves)]
-                    err = binned_fit_error_bars[Wave.encode_waves(self.waves)]
-                    centers = (binned_fit_hist.bins[1:] + binned_fit_hist.bins[:-1]) / 2
                     ax[i][j].errorbar(
-                        centers,
-                        binned_fit_hist.counts,
-                        yerr=0,
-                        fmt='.',
-                        markersize=3,
-                        color=GRAY,
-                        label='Fit Total',
-                    )
-                    ax[i][j].errorbar(
-                        centers,
-                        err[1],
-                        yerr=(err[0], err[2]),
+                        data_hist.centers,
+                        data_hist.counts,
+                        yerr=data_hist.errors,
                         fmt='none',
-                        color=GRAY,
+                        color=BLACK,
                     )
                     fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                     ax[i][j].stairs(
@@ -1777,7 +1678,7 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                         fit_hist.bins,
                         color=GRAY,
                         label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                        lw=0.2,
+                        lw=0.7,
                     )
                     fit_lcu = fit_lcus[Wave.encode_waves(self.waves)]
                     ax[i][j].stairs(
@@ -1793,18 +1694,17 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                 plot_index = wave.plot_index(double=False)
                 binned_wave_hist = binned_fit_hists[Wave.encode(wave)]
                 err = binned_fit_error_bars[Wave.encode(wave)]
-                centers = (binned_wave_hist.bins[1:] + binned_wave_hist.bins[:-1]) / 2
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     binned_wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[plot_index[0]][plot_index[1]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
@@ -1816,7 +1716,6 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                     wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    lw=0.2,
                 )
                 fit_lcu = fit_lcus[Wave.encode(wave)]
                 ax[plot_index[0]][plot_index[1]].stairs(
@@ -1852,24 +1751,12 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                     color=BLACK,
                     label='Data',
                 )
-                binned_fit_hist = binned_fit_hists[Wave.encode_waves(self.waves)]
-                err = binned_fit_error_bars[Wave.encode_waves(self.waves)]
-                centers = (binned_fit_hist.bins[1:] + binned_fit_hist.bins[:-1]) / 2
                 ax[i].errorbar(
-                    centers,
-                    binned_fit_hist.counts,
-                    yerr=0,
-                    fmt='.',
-                    markersize=3,
-                    color=GRAY,
-                    label='Fit Total',
-                )
-                ax[i].errorbar(
-                    centers,
-                    err[1],
-                    yerr=(err[0], err[2]),
+                    data_hist.centers,
+                    data_hist.counts,
+                    yerr=data_hist.errors,
                     fmt='none',
-                    color=GRAY,
+                    color=BLACK,
                 )
                 fit_hist = fit_hists[Wave.encode_waves(self.waves)]
                 ax[i].stairs(
@@ -1877,7 +1764,7 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                     fit_hist.bins,
                     color=GRAY,
                     label=f'Fit (Unbinned{", Guided" if self.guided else ""})',
-                    lw=0.2,
+                    lw=0.7,
                 )
                 fit_lcu = fit_lcus[Wave.encode_waves(self.waves)]
                 ax[i].stairs(
@@ -1892,18 +1779,17 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
             for wave in self.waves:
                 binned_wave_hist = binned_fit_hists[Wave.encode(wave)]
                 err = binned_fit_error_bars[Wave.encode(wave)]
-                centers = (binned_wave_hist.bins[1:] + binned_wave_hist.bins[:-1]) / 2
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     binned_wave_hist.counts,
                     yerr=0,
                     fmt='.',
-                    markersize=3,
+                    markersize=2,
                     color=wave.plot_color,
-                    label=wave.latex,
+                    label=f'{wave.latex} (Binned)',
                 )
                 ax[wave.plot_index(double=True)[0]].errorbar(
-                    centers,
+                    binned_wave_hist.centers,
                     err[1],
                     yerr=(err[0], err[2]),
                     fmt='none',
@@ -1915,7 +1801,6 @@ class PlotUnbinnedAndBinnedFitUncertainty(Task):
                     wave_hist.bins,
                     color=wave.plot_color,
                     label=f'{wave.latex} (Unbinned{", Guided" if self.guided else ""})',
-                    lw=0.2,
                 )
                 fit_lcu = fit_lcus[Wave.encode(wave)]
                 ax[wave.plot_index(double=True)[0]].stairs(
@@ -1962,7 +1847,7 @@ class ProcessBinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             BinnedFitReport(
                 protonz_cut=protonz_cut,
@@ -2009,7 +1894,7 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             BinnedFitReport(
                 protonz_cut=protonz_cut,
@@ -2038,7 +1923,7 @@ class ProcessUnbinned(Task):
                 method=method,
                 nspec=nspec,
                 waves=waves,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             PlotUnbinnedFit(
                 protonz_cut=protonz_cut,
@@ -2059,7 +1944,7 @@ class ProcessUnbinned(Task):
                 nspec=nspec,
                 waves=waves,
                 guided=False,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             PlotUnbinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -2070,7 +1955,7 @@ class ProcessUnbinned(Task):
                 nspec=nspec,
                 waves=waves,
                 guided=True,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             UnbinnedFitReport(
                 protonz_cut=protonz_cut,
@@ -2101,7 +1986,7 @@ class ProcessUnbinned(Task):
                 nspec=nspec,
                 waves=waves,
                 guided=False,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             PlotUnbinnedAndBinnedFit(
                 protonz_cut=protonz_cut,
@@ -2112,7 +1997,7 @@ class ProcessUnbinned(Task):
                 nspec=nspec,
                 waves=waves,
                 guided=True,
-                bootstrap_mode='CI-BC',
+                bootstrap_mode='SE',
             ),
             PlotUnbinnedAndBinnedFitUncertainty(
                 protonz_cut=protonz_cut,
@@ -2123,7 +2008,7 @@ class ProcessUnbinned(Task):
                 nspec=nspec,
                 waves=waves,
                 guided=False,
-                bootstrap_mode_binned='CI-BC',
+                bootstrap_mode_binned='SE',
                 bootstrap_mode_unbinned='CI-BC',
             ),
             PlotUnbinnedAndBinnedFitUncertainty(
@@ -2135,7 +2020,7 @@ class ProcessUnbinned(Task):
                 nspec=nspec,
                 waves=waves,
                 guided=True,
-                bootstrap_mode_binned='CI-BC',
+                bootstrap_mode_binned='SE',
                 bootstrap_mode_unbinned='CI-BC',
             ),
         ]
