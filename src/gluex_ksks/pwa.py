@@ -668,13 +668,16 @@ class BinnedFitResultUncertainty:
     _: KW_ONLY
     lcu_cache: (
         dict[
-            str,
+            int,
             dict[
-                int,
-                tuple[
-                    FloatArray,
-                    FloatArray,
-                    FloatArray,
+                str,
+                dict[
+                    int,
+                    tuple[
+                        FloatArray,
+                        FloatArray,
+                        FloatArray,
+                    ],
                 ],
             ],
         ]
@@ -685,7 +688,7 @@ class BinnedFitResultUncertainty:
         self,
         *,
         bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'CI-BC',
-        confidence_percent: int = 68,
+        confidence_percent: int = 90,
     ) -> dict[
         int,
         tuple[FloatArray, FloatArray, FloatArray],
@@ -711,30 +714,34 @@ class BinnedFitResultUncertainty:
         self,
         *,
         bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'CI-BC',
-        confidence_percent: int = 68,
+        confidence_percent: int = 90,
     ) -> dict[
         int,
         tuple[FloatArray, FloatArray, FloatArray],
     ]:
         if (
             self.lcu_cache is not None
-            and (cache := self.lcu_cache.get(bootstrap_mode)) is not None
+            and (confidence_cache := self.lcu_cache.get(confidence_percent)) is not None
+            and (cache := confidence_cache.get(bootstrap_mode)) is not None
         ):
             return cache
         else:
             self.fill_cache(confidence_percent=confidence_percent)
             if (
                 self.lcu_cache is not None
-                and (cache := self.lcu_cache.get(bootstrap_mode)) is not None
+                and (confidence_cache := self.lcu_cache.get(bootstrap_mode)) is not None
+                and (cache := confidence_cache.get(bootstrap_mode)) is not None
             ):
-                return self.lcu_cache.get(bootstrap_mode)
+                return cache
             else:
-                raise RuntimeError(f'No cache found for mode {bootstrap_mode}')
+                raise RuntimeError(
+                    f'No cache found for mode {bootstrap_mode} at {confidence_percent}% confidence'
+                )
 
     def fill_cache(
         self,
         *,
-        confidence_percent: int = 68,
+        confidence_percent: int = 90,
     ):
         data_datasets = self.fit_result.paths.get_data_datasets_binned(
             self.fit_result.binning
@@ -817,18 +824,19 @@ class BinnedFitResultUncertainty:
                 phi = norm().cdf
                 phi_inv = norm().ppf
 
-                def cdf_b(x: float) -> float:
-                    return (
-                        np.sum(
-                            np.array(intensities_in_bin[Wave.encode_waves(waveset)]) < x
-                        )
-                        / n_b
-                    )
+                intensities = np.array(intensities_in_bin[Wave.encode_waves(waveset)])
+                bootstrap_mean = intensities.mean(axis=0)
+
+                cdf_b = (
+                    np.sum(intensities < fit_value) / n_b
+                    if fit_value < bootstrap_mean
+                    else np.sum(intensities <= fit_value) / n_b
+                )
 
                 a = (1 - confidence_percent / 100) / 2
                 z_a_lo = phi_inv(a)
                 z_a_hi = phi_inv(1 - a)
-                z_0 = phi_inv(cdf_b(fit_value))
+                z_0 = phi_inv(cdf_b)
                 a_lo = phi(2 * z_0 + z_a_lo)
                 a_hi = phi(2 * z_0 + z_a_hi)
 
@@ -872,7 +880,13 @@ class BinnedFitResultUncertainty:
             )
             for waveset in wavesets
         }
-        self.lcu_cache = {'SE': lcu_se, 'CI': lcu_ci, 'CI-BC': lcu_ci_bc}
+        if self.lcu_cache is None:
+            self.lcu_cache = {}
+        self.lcu_cache[confidence_percent] = {
+            'SE': lcu_se,
+            'CI': lcu_ci,
+            'CI-BC': lcu_ci_bc,
+        }
 
 
 def calculate_bootstrap_uncertainty_binned(
@@ -924,15 +938,19 @@ def calculate_bootstrap_uncertainty_binned(
 class UnbinnedFitResultUncertainty:
     samples: list[FloatArray]
     fit_result: UnbinnedFitResult
+    histogram_cache: dict[int, list[Histogram]] | None = None
     lcu_cache: (
         dict[
-            str,
+            int,
             dict[
-                int,
-                tuple[
-                    FloatArray,
-                    FloatArray,
-                    FloatArray,
+                str,
+                dict[
+                    int,
+                    tuple[
+                        FloatArray,
+                        FloatArray,
+                        FloatArray,
+                    ],
                 ],
             ],
         ]
@@ -944,39 +962,37 @@ class UnbinnedFitResultUncertainty:
         binning: Binning,
         *,
         bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'CI-BC',
-        confidence_percent: int = 68,
+        confidence_percent: int = 90,
     ) -> dict[
         int,
         tuple[FloatArray, FloatArray, FloatArray],
     ]:
         if (
             self.lcu_cache is not None
-            and (cache := self.lcu_cache.get(bootstrap_mode)) is not None
+            and (confidence_cache := self.lcu_cache.get(confidence_percent)) is not None
+            and (cache := confidence_cache.get(bootstrap_mode)) is not None
         ):
             return cache
         else:
             self.fill_cache(binning, confidence_percent=confidence_percent)
             if (
                 self.lcu_cache is not None
-                and (cache := self.lcu_cache.get(bootstrap_mode)) is not None
+                and (confidence_cache := self.lcu_cache.get(confidence_percent))
+                is not None
+                and (cache := confidence_cache.get(bootstrap_mode)) is not None
             ):
-                return self.lcu_cache.get(bootstrap_mode)
+                return cache
             else:
-                raise RuntimeError(f'No cache found for mode {bootstrap_mode}')
+                raise RuntimeError(
+                    f'No cache found for mode {bootstrap_mode} at {confidence_percent}% confidence'
+                )
 
-    def fill_cache(
-        self,
-        binning: Binning,
-        *,
-        confidence_percent: int = 68,
-    ):
+    def get_bootstrap_histograms(self, binning: Binning) -> dict[int, list[Histogram]]:
+        if self.histogram_cache is not None:
+            return self.histogram_cache
         data_datasets = self.fit_result.paths.get_data_datasets()
         accmc_datasets = self.fit_result.paths.get_accmc_datasets()
         wavesets = Wave.power_set(self.fit_result.waves)
-        lcu_se: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
-        lcu_ci: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
-        lcu_ci_bc: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
-        fit_histograms = self.fit_result.get_histograms(binning)
         res_mass = ld.Mass([2, 3])
         bootstrapped_histograms: dict[int, list[Histogram]] = {
             Wave.encode_waves(waveset): [] for waveset in wavesets
@@ -1017,11 +1033,26 @@ class UnbinnedFitResultUncertainty:
                         )
                     )
                 )
+        self.histogram_cache = bootstrapped_histograms
+        return self.histogram_cache
+
+    def fill_cache(
+        self,
+        binning: Binning,
+        *,
+        confidence_percent: int = 90,
+    ):
+        wavesets = Wave.power_set(self.fit_result.waves)
+        lcu_se: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        lcu_ci: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        lcu_ci_bc: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        fit_histograms = self.fit_result.get_histograms(binning)
+        bootstrap_histograms = self.get_bootstrap_histograms(binning)
         for waveset in wavesets:
             intensities = np.array(
                 [
                     histogram.counts
-                    for histogram in bootstrapped_histograms[Wave.encode_waves(waveset)]
+                    for histogram in bootstrap_histograms[Wave.encode_waves(waveset)]
                 ]
             )
             a_lo = (1 - confidence_percent / 100) / 2
@@ -1037,19 +1068,22 @@ class UnbinnedFitResultUncertainty:
             phi = norm().cdf
             phi_inv = norm().ppf
 
-            def cdf_b(xs: FloatArray) -> FloatArray:
-                return (
-                    np.sum(
-                        [intensities[:, ix] < x for ix, x in enumerate(xs.tolist())],
-                        axis=1,
-                    )
-                    / n_b
-                )
+            bootstrap_means = intensities.mean(axis=0)
+
+            lt_mask = fit_values > bootstrap_means
+            le_mask = ~lt_mask
+            cdfs = np.zeros_like(fit_values, dtype=float)
+            cdfs[lt_mask] = (
+                np.sum(intensities[:, lt_mask] < fit_values[lt_mask], axis=0) / n_b
+            )
+            cdfs[le_mask] = (
+                np.sum(intensities[:, le_mask] <= fit_values[le_mask], axis=0) / n_b
+            )
 
             a = (1 - confidence_percent / 100) / 2
             z_a_lo = phi_inv(a)
             z_a_hi = phi_inv(1 - a)
-            z_0s = phi_inv(cdf_b(fit_values))
+            z_0s = phi_inv(cdfs)
             a_los = phi(2 * z_0s + z_a_lo)
             a_his = phi(2 * z_0s + z_a_hi)
 
@@ -1077,7 +1111,13 @@ class UnbinnedFitResultUncertainty:
                 quantiles[1],
                 quantiles[2],
             )
-        self.lcu_cache = {'SE': lcu_se, 'CI': lcu_ci, 'CI-BC': lcu_ci_bc}
+        if self.lcu_cache is None:
+            self.lcu_cache = {}
+        self.lcu_cache[confidence_percent] = {
+            'SE': lcu_se,
+            'CI': lcu_ci,
+            'CI-BC': lcu_ci_bc,
+        }
 
 
 def calculate_bootstrap_uncertainty_unbinned(
@@ -1204,7 +1244,7 @@ def fit_guided(
                     error_sets=error_sets[i],
                 )
             )
-            for i, (_, accmc_dataset) in enumerate(zip(data_datasets, accmc_datasets))
+            for i, accmc_dataset in enumerate(accmc_datasets)
         ]
     )
     nll = manager.load(likelihood_model)

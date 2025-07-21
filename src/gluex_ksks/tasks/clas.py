@@ -197,40 +197,28 @@ class PlotCLASComparison(Task):
                 color=BLACK,
                 label='Data',
             )
-            fit_hist = fit_hists[Wave.encode_waves(self.waves)]
-            err = fit_error_bars[Wave.encode_waves(self.waves)]
-            centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
             ax[i].errorbar(
-                centers,
-                fit_hist.counts,
-                yerr=0,
-                fmt='.',
-                markersize=3,
-                color=BLACK,
-                label='Fit Total',
-            )
-            ax[i].errorbar(
-                centers,
-                err[1],
-                yerr=(err[0], err[2]),
+                data_hist.centers,
+                data_hist.counts,
+                yerr=data_hist.errors,
                 fmt='none',
                 color=BLACK,
+                label='Data',
             )
         # S-wave
         wave_hist = fit_hists[Wave.encode(self.waves[0])]
         err = fit_error_bars[Wave.encode(self.waves[0])]
-        centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
         ax[0].errorbar(
-            centers,
+            wave_hist.centers,
             wave_hist.counts,
             yerr=0,
             fmt='.',
-            markersize=3,
+            markersize=2,
             color=self.waves[0].plot_color,
-            label=self.waves[0].latex,
+            label=f'{self.waves[0].latex} (Binned)',
         )
         ax[0].errorbar(
-            centers,
+            wave_hist.centers,
             err[1],
             yerr=(err[0], err[2]),
             fmt='none',
@@ -241,7 +229,7 @@ class PlotCLASComparison(Task):
             clas_s_wave_counts,
             yerr=clas_errors,
             fmt='v',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS S-Wave\n($S+B$, projected fractions)',
         )
@@ -250,7 +238,7 @@ class PlotCLASComparison(Task):
             clas_s_wave_counts_sideband,
             yerr=clas_errors_sideband,
             fmt='^',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS S-Wave\n(sideband, projected fractions)',
         )
@@ -258,18 +246,17 @@ class PlotCLASComparison(Task):
         # D-wave
         wave_hist = fit_hists[Wave.encode(self.waves[1])]
         err = fit_error_bars[Wave.encode(self.waves[1])]
-        centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
         ax[1].errorbar(
-            centers,
+            wave_hist.centers,
             wave_hist.counts,
             yerr=0,
             fmt='.',
-            markersize=3,
+            markersize=2,
             color=self.waves[1].plot_color,
-            label=self.waves[1].latex,
+            label=f'{self.waves[1].latex} (Binned)',
         )
         ax[1].errorbar(
-            centers,
+            wave_hist.centers,
             err[1],
             yerr=(err[0], err[2]),
             fmt='none',
@@ -280,7 +267,7 @@ class PlotCLASComparison(Task):
             clas_d_wave_counts,
             yerr=clas_errors,
             fmt='v',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS D-Wave\n($S+B$, projected fractions)',
         )
@@ -289,7 +276,7 @@ class PlotCLASComparison(Task):
             clas_d_wave_counts_sideband,
             yerr=clas_errors_sideband,
             fmt='^',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS D-Wave\n(sideband, projected fractions)',
         )
@@ -313,40 +300,28 @@ class PlotCLASComparison(Task):
                 color=BLACK,
                 label='Data',
             )
-            fit_hist = fit_hists[Wave.encode_waves(self.waves)]
-            err = fit_error_bars[Wave.encode_waves(self.waves)]
-            centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
             ax[i].errorbar(
-                centers,
-                fit_hist.counts,
-                yerr=0,
-                fmt='.',
-                markersize=3,
-                color=BLACK,
-                label='Fit Total',
-            )
-            ax[i].errorbar(
-                centers,
-                err[1],
-                yerr=(err[0], err[2]),
+                data_hist.centers,
+                data_hist.counts,
+                yerr=data_hist.errors,
                 fmt='none',
                 color=BLACK,
+                label='Data',
             )
         # S-wave
         wave_hist = fit_hists[Wave.encode(self.waves[0])]
         err = fit_error_bars[Wave.encode(self.waves[0])]
-        centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
         ax[0].errorbar(
-            centers,
+            wave_hist.centers,
             wave_hist.counts,
             yerr=0,
             fmt='.',
-            markersize=3,
+            markersize=2,
             color=self.waves[0].plot_color,
-            label=self.waves[0].latex,
+            label=f'{self.waves[0].latex} (Binned)',
         )
         ax[0].errorbar(
-            centers,
+            wave_hist.centers,
             err[1],
             yerr=(err[0], err[2]),
             fmt='none',
@@ -357,7 +332,7 @@ class PlotCLASComparison(Task):
             clas_s_wave_counts,
             yerr=clas_errors,
             fmt='v',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS S-Wave\n($S+B$, projected fractions)',
         )
@@ -365,18 +340,17 @@ class PlotCLASComparison(Task):
         # D-wave
         wave_hist = fit_hists[Wave.encode(self.waves[1])]
         err = fit_error_bars[Wave.encode(self.waves[1])]
-        centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
         ax[1].errorbar(
-            centers,
+            wave_hist.centers,
             wave_hist.counts,
             yerr=0,
             fmt='.',
-            markersize=3,
+            markersize=2,
             color=self.waves[1].plot_color,
-            label=self.waves[1].latex,
+            label=f'{self.waves[1].latex} (Binned)',
         )
         ax[1].errorbar(
-            centers,
+            wave_hist.centers,
             err[1],
             yerr=(err[0], err[2]),
             fmt='none',
@@ -387,7 +361,7 @@ class PlotCLASComparison(Task):
             clas_d_wave_counts,
             yerr=clas_errors,
             fmt='v',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS D-Wave\n($S+B$, projected fractions)',
         )
@@ -411,40 +385,28 @@ class PlotCLASComparison(Task):
                 color=BLACK,
                 label='Data',
             )
-            fit_hist = fit_hists[Wave.encode_waves(self.waves)]
-            err = fit_error_bars[Wave.encode_waves(self.waves)]
-            centers = (fit_hist.bins[1:] + fit_hist.bins[:-1]) / 2
             ax[i].errorbar(
-                centers,
-                fit_hist.counts,
-                yerr=0,
-                fmt='.',
-                markersize=3,
-                color=BLACK,
-                label='Fit Total',
-            )
-            ax[i].errorbar(
-                centers,
-                err[1],
-                yerr=(err[0], err[2]),
+                data_hist.centers,
+                data_hist.counts,
+                yerr=data_hist.errors,
                 fmt='none',
                 color=BLACK,
+                label='Data',
             )
         # S-wave
         wave_hist = fit_hists[Wave.encode(self.waves[0])]
         err = fit_error_bars[Wave.encode(self.waves[0])]
-        centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
         ax[0].errorbar(
-            centers,
+            wave_hist.centers,
             wave_hist.counts,
             yerr=0,
             fmt='.',
-            markersize=3,
+            markersize=2,
             color=self.waves[0].plot_color,
-            label=self.waves[0].latex,
+            label=f'{self.waves[0].latex} (Binned)',
         )
         ax[0].errorbar(
-            centers,
+            wave_hist.centers,
             err[1],
             yerr=(err[0], err[2]),
             fmt='none',
@@ -455,7 +417,7 @@ class PlotCLASComparison(Task):
             clas_s_wave_counts_sideband,
             yerr=clas_errors_sideband,
             fmt='^',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS S-Wave\n(sideband, projected fractions)',
         )
@@ -463,18 +425,17 @@ class PlotCLASComparison(Task):
         # D-wave
         wave_hist = fit_hists[Wave.encode(self.waves[1])]
         err = fit_error_bars[Wave.encode(self.waves[1])]
-        centers = (wave_hist.bins[1:] + wave_hist.bins[:-1]) / 2
         ax[1].errorbar(
-            centers,
+            wave_hist.centers,
             wave_hist.counts,
             yerr=0,
             fmt='.',
-            markersize=3,
+            markersize=2,
             color=self.waves[1].plot_color,
-            label=self.waves[1].latex,
+            label=f'{self.waves[1].latex} (Binned)',
         )
         ax[1].errorbar(
-            centers,
+            wave_hist.centers,
             err[1],
             yerr=(err[0], err[2]),
             fmt='none',
@@ -485,7 +446,7 @@ class PlotCLASComparison(Task):
             clas_d_wave_counts_sideband,
             yerr=clas_errors_sideband,
             fmt='^',
-            markersize=1,
+            markersize=2,
             color=BLUE,
             label='CLAS D-Wave\n(sideband, projected fractions)',
         )
