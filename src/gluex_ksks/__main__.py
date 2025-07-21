@@ -182,7 +182,7 @@ def main(chisqdof: float, waves: str):
                     select_mesons=True,
                     method='free',
                     nspec=2,
-                    bootstrap_mode='CI-BC',
+                    bootstrap_mode='SE',
                 ),
                 PlotAll(
                     data_type='data',
