@@ -248,8 +248,11 @@ class BinnedFitUncertainty(Task):
         result = calculate_bootstrap_uncertainty_binned(
             binned_fit_result, nboot=NBOOT, threads=NUM_THREADS, logger=self.logger
         )
+        self.logger.info('Filling 68% cache')
         result.fill_cache(confidence_percent=68)
+        self.logger.info('Filling 90% cache')
         result.fill_cache(confidence_percent=90)
+        self.logger.info('Filling 95% cache')
         result.fill_cache(confidence_percent=95)
         pickle.dump(result, self.outputs[0].open('wb'))
 
@@ -914,8 +917,11 @@ class UnbinnedFitUncertainty(Task):
             logger=self.logger,
         )
         binning = Binning(NBINS, MESON_MASS_RANGE)
+        self.logger.info('Filling 68% cache')
         result.fill_cache(binning, confidence_percent=68)
+        self.logger.info('Filling 90% cache')
         result.fill_cache(binning, confidence_percent=90)
+        self.logger.info('Filling 95% cache')
         result.fill_cache(binning, confidence_percent=95)
         pickle.dump(result, self.outputs[0].open('wb'))
 
