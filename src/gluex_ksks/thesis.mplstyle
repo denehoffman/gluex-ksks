@@ -39,7 +39,7 @@ figure.figsize: 5.2, 3.2
 # Images
 image.cmap: viridis
 # Error Bars
-errorbar.capsize: 1.0
+errorbar.capsize: 0.0
 # Saving
 savefig.dpi: 1000
 savefig.format: png
