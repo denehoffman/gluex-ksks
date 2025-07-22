@@ -930,7 +930,6 @@ def calculate_bootstrap_uncertainty_binned(
     return BinnedFitResultUncertainty(
         samples,
         fit_result,
-        uncertainty='bootstrap',
     )
 
 
