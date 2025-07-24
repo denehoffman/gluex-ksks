@@ -495,6 +495,14 @@ class UnbinnedFitResult:
     data_hist_cache: Histogram | None = None
     fit_histograms_cache: dict[int, list[Histogram]] | None = None
 
+    def get_resampled_kmatrix_model(self, seed: int) -> ld.Model:
+        return Wave.get_model(
+            self.waves,
+            mass_dependent=True,
+            phase_factor=self.phase_factor,
+            resample_seed=seed,
+        )
+
     def get_data_histogram(self, binning: Binning) -> Histogram:
         if data_hist := self.data_hist_cache:
             return data_hist
@@ -1140,6 +1148,47 @@ def calculate_bootstrap_uncertainty_unbinned(
                     ld.NLL(
                         fit_result.model,
                         ds_data.bootstrap(iboot),
+                        ds_accmc,
+                    ).as_term()
+                )
+                for ds_data, ds_accmc in zip(data_datasets, accmc_datasets)
+            ]
+        )
+        nll = manager.load(bin_model)
+        status = nll.minimize(
+            fit_result.status.x,
+            threads=threads,
+            skip_hessian=True,
+        )
+        if status.converged:
+            samples.append(status.x)
+    return UnbinnedFitResultUncertainty(
+        samples,
+        fit_result,
+    )
+
+
+def calculate_kmatrix_uncertainty_unbinned(
+    fit_result: UnbinnedFitResult,
+    *,
+    nsamples: int,
+    threads: int,
+    logger,
+) -> UnbinnedFitResultUncertainty:
+    data_datasets = fit_result.paths.get_data_datasets()
+    accmc_datasets = fit_result.paths.get_accmc_datasets()
+    samples: list[FloatArray] = []
+    logger.info('Resampling K-Matrix for Unbinned fit')
+    for isample in range(nsamples):
+        if isample % 10 == 0:
+            logger.info(f'Sample iteration {isample}')
+        manager = ld.LikelihoodManager()
+        bin_model = ld.likelihood_sum(
+            [
+                manager.register(
+                    ld.NLL(
+                        fit_result.get_resampled_kmatrix_model(isample),
+                        ds_data,
                         ds_accmc,
                     ).as_term()
                 )
