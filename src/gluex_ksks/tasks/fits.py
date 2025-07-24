@@ -1115,10 +1115,10 @@ class PlotFit(Task):
                 )
         outputs = [
             PLOTS_PATH
-            / f'binned_and_unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{self.binned_spec}{self.unbinned_spec if self.unbinned_spec is not None else ""}.png',
+            / f'pwa_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{self.binned_spec}{self.unbinned_spec if self.unbinned_spec is not None else ""}.png',
         ]
         super().__init__(
-            f'binned_and_unbinned_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{self.binned_spec}{self.unbinned_spec if self.unbinned_spec is not None else ""}',
+            f'pwa_fit_plot{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}{self.binned_spec}{self.unbinned_spec if self.unbinned_spec is not None else ""}',
             inputs=inputs,
             outputs=outputs,
             resources={'fitplot': 1},
