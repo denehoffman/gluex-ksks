@@ -260,7 +260,9 @@ class Wave:
         )
         return (rf'${isospin}_{{{spin}}}{prime}({mass})$', rf'${wave}$')
 
-    def kmatrix(self, manager: ld.Manager) -> list[ld.amplitudes.AmplitudeID]:
+    def kmatrix(
+        self, manager: ld.Manager, seed: int | None = None
+    ) -> list[ld.amplitudes.AmplitudeID]:
         res_mass = ld.Mass([2, 3])
         wave_subinfo = f'{"+" if self.m >= 0 else "-"}{abs(self.m)}{self.r}'
         if self.l == 0:
@@ -288,6 +290,7 @@ class Wave:
                     ),
                     2,
                     res_mass,
+                    seed=seed,
                 )
             )
             a = manager.register(
@@ -305,6 +308,7 @@ class Wave:
                     ),
                     1,
                     res_mass,
+                    seed=seed,
                 )
             )
         elif self.l == 2:
@@ -331,6 +335,7 @@ class Wave:
                     ),
                     2,
                     res_mass,
+                    seed=seed,
                 )
             )
             a = manager.register(
@@ -348,6 +353,7 @@ class Wave:
                     ),
                     1,
                     res_mass,
+                    seed=seed,
                 )
             )
         else:
@@ -367,7 +373,11 @@ class Wave:
 
     @staticmethod
     def get_model(
-        waves: list[Wave], *, mass_dependent: bool, phase_factor: bool = False
+        waves: list[Wave],
+        *,
+        mass_dependent: bool,
+        phase_factor: bool = False,
+        resample_seed: int | None = None,
     ) -> ld.Model:
         pos_r_waves = [wave for wave in waves if wave.positive]
         neg_r_waves = [wave for wave in waves if wave.negative]
@@ -375,7 +385,10 @@ class Wave:
         pos_amps = (
             [wave.coefficient(manager) for wave in pos_r_waves]
             if not mass_dependent
-            else [ld.amplitude_sum(wave.kmatrix(manager)) for wave in pos_r_waves]
+            else [
+                ld.amplitude_sum(wave.kmatrix(manager, seed=resample_seed))
+                for wave in pos_r_waves
+            ]
         )
         neg_amps = (
             [wave.coefficient(manager) for wave in neg_r_waves]

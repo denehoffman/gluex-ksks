@@ -778,7 +778,9 @@ def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
     ).unnest('m_alt_hypos')
 
 
-def to_latex(value: float, unc: float | None = None) -> str:
+def to_latex(
+    value: float, unc: float | None = None, unc_sys: float | None = None
+) -> str:
     if unc is None:
         if np.isnan(value):
             return r' \textemdash '
@@ -788,12 +790,19 @@ def to_latex(value: float, unc: float | None = None) -> str:
         return r'$0.0$ (fixed)'
     if np.isnan(value) or np.isnan(unc):
         return r' \textemdash '
-    unc_trunc = round(unc, -int(np.floor(np.log10(abs(unc)))) + 1)
-    val_trunc = round(value, -int(np.floor(np.log10(abs(unc)))) + 1)
-    ndigits = int(np.floor(np.log10(abs(unc)))) - 1
+    truncation = -int(np.floor(np.log10(abs(unc)))) + 1
+    if unc_sys is not None:
+        truncation_sys = -int(np.floor(np.log10(abs(unc_sys)))) + 1
+        truncation = max(truncation, truncation_sys)
+    unc_trunc = round(unc, truncation)
+    val_trunc = round(value, truncation)
+    ndigits = -truncation
     expo = int(np.floor(np.log10(abs(val_trunc if val_trunc != 0.0 else unc_trunc))))
     val_mantissa = val_trunc / 10**expo
     unc_mantissa = unc_trunc / 10**expo
+    if unc_sys is not None:
+        unc_sys_mantissa = unc_sys / 10**expo if unc_sys is not None else None
+        return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f} \pm {unc_sys_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'
     return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'
 
 
