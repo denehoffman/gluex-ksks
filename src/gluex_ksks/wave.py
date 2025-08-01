@@ -79,7 +79,7 @@ class Wave:
             if self.l == 0:
                 return (0, 0)
             else:
-                return (1, 0)
+                return (0, 1)
         if self.m == 0:
             if self.l == 0:
                 return (0, 0)
