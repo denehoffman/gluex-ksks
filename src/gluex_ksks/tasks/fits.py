@@ -936,17 +936,20 @@ class UnbinnedFitReport(Task):
                         ddof=1,
                     )
                 )
-                unc_real_sys: float | None = float(
-                    np.std(
-                        [
-                            unbinned_fit_result_sys.samples[j][i]
-                            for j in range(len(unbinned_fit_result_sys.samples))
-                        ],
-                        ddof=1,
+                unc_real_sys: float | None = (
+                    float(
+                        np.std(
+                            [
+                                unbinned_fit_result_sys.samples[j][i]
+                                for j in range(len(unbinned_fit_result_sys.samples))
+                            ],
+                            ddof=1,
+                        )
                     )
                     if unbinned_fit_result_sys is not None
                     else None
                 )
+
                 if parameter_imag in model.parameters:
                     value_imag = status.x[i + 1]
                     unc_imag = float(
@@ -958,17 +961,20 @@ class UnbinnedFitReport(Task):
                             ddof=1,
                         )
                     )
-                    unc_imag_sys: float | None = float(
-                        np.std(
-                            [
-                                unbinned_fit_result_sys.samples[j][i + 1]
-                                for j in range(len(unbinned_fit_result_sys.samples))
-                            ],
-                            ddof=1,
+                    unc_imag_sys: float | None = (
+                        float(
+                            np.std(
+                                [
+                                    unbinned_fit_result_sys.samples[j][i + 1]
+                                    for j in range(len(unbinned_fit_result_sys.samples))
+                                ],
+                                ddof=1,
+                            )
                         )
                         if unbinned_fit_result_sys is not None
                         else None
                     )
+
                     total_mag = value_real**2 + value_imag**2
                     total_mag_unc = float(
                         np.std(
@@ -980,21 +986,25 @@ class UnbinnedFitReport(Task):
                             ddof=1,
                         )
                     )
-                    total_mag_unc_sys: float | None = float(
-                        np.std(
-                            [
-                                unbinned_fit_result_sys.samples[j][i] ** 2
-                                + unbinned_fit_result_sys.samples[j][i + 1] ** 2
-                                for j in range(len(unbinned_fit_result_sys.samples))
-                            ],
-                            ddof=1,
+                    total_mag_unc_sys: float | None = (
+                        float(
+                            np.std(
+                                [
+                                    unbinned_fit_result_sys.samples[j][i] ** 2
+                                    + unbinned_fit_result_sys.samples[j][i + 1] ** 2
+                                    for j in range(len(unbinned_fit_result_sys.samples))
+                                ],
+                                ddof=1,
+                            )
                         )
                         if unbinned_fit_result_sys is not None
                         else None
                     )
+
                 else:
                     value_imag = 0.0
                     unc_imag = 0.0
+                    unc_imag_sys = 0.0
                     total_mag = value_real**2
                     total_mag_unc = float(
                         np.std(
@@ -1005,13 +1015,15 @@ class UnbinnedFitReport(Task):
                             ddof=1,
                         )
                     )
-                    total_mag_unc_sys: float | None = float(
-                        np.std(
-                            [
-                                unbinned_fit_result_sys.samples[j][i] ** 2
-                                for j in range(len(unbinned_fit_result_sys.samples))
-                            ],
-                            ddof=1,
+                    total_mag_unc_sys: float | None = (
+                        float(
+                            np.std(
+                                [
+                                    unbinned_fit_result_sys.samples[j][i] ** 2
+                                    for j in range(len(unbinned_fit_result_sys.samples))
+                                ],
+                                ddof=1,
+                            )
                         )
                         if unbinned_fit_result_sys is not None
                         else None
@@ -1053,7 +1065,7 @@ class UnbinnedPlotSpec:
         elif self.uncertainty_mode == 'resample':
             return f'_unbinned_kmatrix_{self.bootstrap_mode}{"_guided" if self.guided else ""}'
         else:
-            return f'_unbinned_bootstrap_{self.bootstrap_mode}_kmatrix_SE_{"_guided" if self.guided else ""}'
+            return f'_unbinned_bootstrap_{self.bootstrap_mode}_kmatrix_SE{"_guided" if self.guided else ""}'
 
 
 class PlotFit(Task):
@@ -1182,157 +1194,49 @@ class PlotFit(Task):
 
         self.logger.info('Loaded fit result')
         plt.style.use('gluex_ksks.thesis')
-        if Wave.needs_full_plot(self.waves):
-            fig, ax = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
-            for i in {0, 1}:
-                for j in {0, 1, 2}:
-                    if not Wave.has_wave_at_index(self.waves, (i, j)):
-                        continue
-                    ax[i][j].stairs(
-                        data_hist.counts,
-                        data_hist.bins,
-                        color=BLACK,
-                        label='Data',
+        double = not Wave.needs_full_plot(self.waves)
+        plot_shape = (1, 2) if double else (2, 3)
+        fig, axarr = plt.subplots(*plot_shape, sharex=True, sharey=True)
+        ax = np.array(axarr).reshape(plot_shape)
+
+        # Plot total data and fit in all panels
+        for i in range(plot_shape[0]):
+            for j in range(plot_shape[1]):
+                if not double and not Wave.has_wave_at_index(self.waves, (i, j)):
+                    latex_group = Wave.get_latex_group_at_index((i, j))
+                    ax[i][j].text(
+                        0.5,
+                        0.5,
+                        f'No {latex_group}',
+                        ha='center',
+                        va='center',
+                        transform=ax[i][j].transAxes,
                     )
-                    ax[i][j].errorbar(
-                        data_hist.centers,
-                        data_hist.counts,
-                        yerr=data_hist.errors,
-                        fmt='none',
-                        color=BLACK,
-                    )
-                    if (
-                        unbinned_fit_hists is not None
-                        and unbinned_fit_lcus is not None
-                        and self.unbinned_spec is not None
-                    ):
-                        fit_hist = unbinned_fit_hists[Wave.encode_waves(self.waves)]
-                        ax[i][j].stairs(
-                            fit_hist.counts,
-                            fit_hist.bins,
-                            color=GRAY,
-                            label=f'Fit (Unbinned{", Guided" if self.unbinned_spec.guided else ""})',
-                            lw=0.7,
-                        )
-                        fit_lcu = unbinned_fit_lcus[Wave.encode_waves(self.waves)]
-                        ax[i][j].stairs(
-                            fit_lcu[2],
-                            fit_hist.bins,
-                            baseline=fit_lcu[0],
-                            fill=True,
-                            color=GRAY,
-                            alpha=0.2,
-                            lw=0,
-                        )
-                        if unbinned_fit_lcus_stderr is not None:
-                            fit_lcus_stderr = unbinned_fit_lcus_stderr[
-                                Wave.encode_waves(self.waves)
-                            ]
-                            ax[i][j].errorbar(
-                                data_hist.centers,
-                                fit_lcus_stderr[1],
-                                yerr=(fit_lcus_stderr[2] - fit_lcus_stderr[0]) / 2,
-                                fmt='none',
-                                color=GRAY,
-                                lw=0.7,
-                            )
-            for wave in self.waves:
-                plot_index = wave.plot_index(double=False)
-                binned_wave_hist = binned_fit_hists[Wave.encode(wave)]
-                err = binned_fit_error_bars[Wave.encode(wave)]
-                ax[plot_index[0]][plot_index[1]].errorbar(
-                    binned_wave_hist.centers,
-                    binned_wave_hist.counts,
-                    yerr=0,
-                    fmt='.',
-                    markersize=2,
-                    color=wave.plot_color,
-                    label=f'{wave.latex} (Binned)',
-                )
-                ax[plot_index[0]][plot_index[1]].errorbar(
-                    binned_wave_hist.centers,
-                    err[1],
-                    yerr=(err[0], err[2]),
-                    fmt='none',
-                    color=wave.plot_color,
-                )
-                if (
-                    unbinned_fit_hists is not None
-                    and unbinned_fit_lcus is not None
-                    and self.unbinned_spec is not None
-                ):
-                    wave_hist = unbinned_fit_hists[Wave.encode(wave)]
-                    ax[plot_index[0]][plot_index[1]].stairs(
-                        wave_hist.counts,
-                        wave_hist.bins,
-                        color=wave.plot_color,
-                        label=f'{wave.latex} (Unbinned{", Guided" if self.unbinned_spec.guided else ""})',
-                    )
-                    fit_lcu = unbinned_fit_lcus[Wave.encode(wave)]
-                    ax[plot_index[0]][plot_index[1]].stairs(
-                        fit_lcu[2],
-                        wave_hist.bins,
-                        baseline=fit_lcu[0],
-                        fill=True,
-                        color=wave.plot_color,
-                        alpha=0.2,
-                        lw=0,
-                    )
-                    if unbinned_fit_lcus_stderr is not None:
-                        fit_lcus_stderr = unbinned_fit_lcus_stderr[Wave.encode(wave)]
-                        ax[i][j].errorbar(
-                            data_hist.centers,
-                            fit_lcus_stderr[1],
-                            yerr=(fit_lcus_stderr[2] - fit_lcus_stderr[0]) / 2,
-                            fmt='none',
-                            color=wave.plot_color,
-                        )
-            for i in {0, 1}:
-                for j in {0, 1, 2}:
-                    if not Wave.has_wave_at_index(self.waves, (i, j)):
-                        latex_group = Wave.get_latex_group_at_index((i, j))
-                        ax[i][j].text(
-                            0.5,
-                            0.5,
-                            f'No {latex_group}',
-                            ha='center',
-                            va='center',
-                            transform=ax[i][j].transAxes,
-                        )
-                    else:
-                        ax[i][j].legend()
-                        ax[i][j].set_ylim(0)
-        else:
-            fig, ax = plt.subplots(ncols=2, sharey=True)
-            for i in {0, 1}:
-                ax[i].stairs(
-                    data_hist.counts,
-                    data_hist.bins,
-                    color=BLACK,
-                    label='Data',
-                )
-                ax[i].errorbar(
+                    continue
+
+                a = ax[i][j]
+                a.stairs(data_hist.counts, data_hist.bins, color=BLACK, label='Data')
+                a.errorbar(
                     data_hist.centers,
                     data_hist.counts,
                     yerr=data_hist.errors,
                     fmt='none',
                     color=BLACK,
                 )
-                if (
-                    unbinned_fit_hists is not None
-                    and unbinned_fit_lcus is not None
-                    and self.unbinned_spec is not None
-                ):
-                    fit_hist = unbinned_fit_hists[Wave.encode_waves(self.waves)]
-                    ax[i].stairs(
+
+                if unbinned_fit_hists and unbinned_fit_lcus and self.unbinned_spec:
+                    key = Wave.encode_waves(self.waves)
+                    fit_hist = unbinned_fit_hists[key]
+                    fit_lcu = unbinned_fit_lcus[key]
+
+                    a.stairs(
                         fit_hist.counts,
                         fit_hist.bins,
                         color=GRAY,
                         label=f'Fit (Unbinned{", Guided" if self.unbinned_spec.guided else ""})',
                         lw=0.7,
                     )
-                    fit_lcu = unbinned_fit_lcus[Wave.encode_waves(self.waves)]
-                    ax[i].stairs(
+                    a.stairs(
                         fit_lcu[2],
                         fit_hist.bins,
                         baseline=fit_lcu[0],
@@ -1341,72 +1245,83 @@ class PlotFit(Task):
                         alpha=0.2,
                         lw=0,
                     )
-                    if unbinned_fit_lcus_stderr is not None:
-                        fit_lcus_stderr = unbinned_fit_lcus_stderr[
-                            Wave.encode_waves(self.waves)
-                        ]
-                        ax[i].errorbar(
+                    if unbinned_fit_lcus_stderr:
+                        stderr = unbinned_fit_lcus_stderr[key]
+                        a.errorbar(
                             data_hist.centers,
-                            fit_lcus_stderr[1],
-                            yerr=(fit_lcus_stderr[2] - fit_lcus_stderr[0]) / 2,
+                            stderr[1],
+                            yerr=(stderr[2] - stderr[0]) / 2,
                             fmt='none',
                             color=GRAY,
-                            lw=0.7,
+                            elinewidth=0.2,
+                            alpha=0.5,
+                            capsize=1,
+                            capthick=0.2,
                         )
-            for wave in self.waves:
-                binned_wave_hist = binned_fit_hists[Wave.encode(wave)]
-                err = binned_fit_error_bars[Wave.encode(wave)]
-                ax[wave.plot_index(double=True)[0]].errorbar(
-                    binned_wave_hist.centers,
-                    binned_wave_hist.counts,
-                    yerr=0,
-                    fmt='.',
-                    markersize=2,
+
+        # Plot each wave
+        for wave in self.waves:
+            i, j = wave.plot_index(double=double)
+            a = ax[i][j]
+            key = Wave.encode(wave)
+            binned_wave_hist = binned_fit_hists[key]
+            err = binned_fit_error_bars[key]
+
+            a.errorbar(
+                binned_wave_hist.centers,
+                binned_wave_hist.counts,
+                yerr=0,
+                fmt='.',
+                markersize=2,
+                color=wave.plot_color,
+                label=f'{wave.latex} (Binned)',
+            )
+            a.errorbar(
+                binned_wave_hist.centers,
+                err[1],
+                yerr=(err[0], err[2]),
+                fmt='none',
+                color=wave.plot_color,
+            )
+
+            if unbinned_fit_hists and unbinned_fit_lcus and self.unbinned_spec:
+                wave_hist = unbinned_fit_hists[key]
+                fit_lcu = unbinned_fit_lcus[key]
+                a.stairs(
+                    wave_hist.counts,
+                    wave_hist.bins,
                     color=wave.plot_color,
-                    label=f'{wave.latex} (Binned)',
+                    label=f'{wave.latex} (Unbinned{", Guided" if self.unbinned_spec.guided else ""})',
                 )
-                ax[wave.plot_index(double=True)[0]].errorbar(
-                    binned_wave_hist.centers,
-                    err[1],
-                    yerr=(err[0], err[2]),
-                    fmt='none',
+                a.stairs(
+                    fit_lcu[2],
+                    wave_hist.bins,
+                    baseline=fit_lcu[0],
+                    fill=True,
                     color=wave.plot_color,
+                    alpha=0.2,
+                    lw=0,
                 )
-                if (
-                    unbinned_fit_hists is not None
-                    and unbinned_fit_lcus is not None
-                    and self.unbinned_spec is not None
-                ):
-                    wave_hist = unbinned_fit_hists[Wave.encode(wave)]
-                    ax[wave.plot_index(double=True)[0]].stairs(
-                        wave_hist.counts,
-                        wave_hist.bins,
+                if unbinned_fit_lcus_stderr:
+                    stderr = unbinned_fit_lcus_stderr[key]
+                    a.errorbar(
+                        data_hist.centers,
+                        stderr[1],
+                        yerr=(stderr[2] - stderr[0]) / 2,
+                        fmt='none',
                         color=wave.plot_color,
-                        label=f'{wave.latex} (Unbinned{", Guided" if self.unbinned_spec.guided else ""})',
+                        elinewidth=0.2,
+                        alpha=0.5,
+                        capsize=1,
+                        capthick=0.2,
                     )
-                    fit_lcu = unbinned_fit_lcus[Wave.encode(wave)]
-                    ax[wave.plot_index(double=True)[0]].stairs(
-                        fit_lcu[2],
-                        wave_hist.bins,
-                        baseline=fit_lcu[0],
-                        fill=True,
-                        color=wave.plot_color,
-                        alpha=0.2,
-                        lw=0,
-                    )
-                    if unbinned_fit_lcus_stderr is not None:
-                        fit_lcus_stderr = unbinned_fit_lcus_stderr[Wave.encode(wave)]
-                        ax[i][j].errorbar(
-                            data_hist.centers,
-                            fit_lcus_stderr[1],
-                            yerr=(fit_lcus_stderr[2] - fit_lcus_stderr[0]) / 2,
-                            fmt='none',
-                            color=wave.plot_color,
-                        )
-            ax[0].legend()
-            ax[1].legend()
-            ax[0].set_ylim(0)
-            ax[1].set_ylim(0)
+
+        # Finalize axes
+        for i in range(plot_shape[0]):
+            for j in range(plot_shape[1]):
+                if double or Wave.has_wave_at_index(self.waves, (i, j)):
+                    ax[i][j].legend()
+                    ax[i][j].set_ylim(0)
 
         fig.supxlabel('Invariant Mass of $K_S^0K_S^0$ (GeV/$c^2$)')
         bin_width = int((MESON_MASS_RANGE[1] - MESON_MASS_RANGE[0]) / NBINS * 1000)
@@ -1506,6 +1421,8 @@ class ProcessUnbinned(Task):
                     UnbinnedPlotSpec('resample', guided=True),
                     UnbinnedPlotSpec('both', guided=False),
                     UnbinnedPlotSpec('both', guided=True),
+                    UnbinnedPlotSpec('both', 'SE', guided=False),
+                    UnbinnedPlotSpec('both', 'SE', guided=True),
                 ]
             ],
             PlotGuidedFit(
