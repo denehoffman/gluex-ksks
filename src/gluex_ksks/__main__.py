@@ -153,7 +153,7 @@ def main(chisqdof: float, waves: str):
                 chisqdof=chisqdof,
                 select_mesons=True,
                 method='free',
-                nspec=2,
+                nspec=3,
                 waves=waves,
             )
             for waves in BINNED_WAVESETS
@@ -165,7 +165,7 @@ def main(chisqdof: float, waves: str):
                 chisqdof=chisqdof,
                 select_mesons=True,
                 method='free',
-                nspec=2,
+                nspec=3,
                 waves=waves,
             )
             for waves in UNBINNED_WAVESETS
@@ -181,7 +181,7 @@ def main(chisqdof: float, waves: str):
                     chisqdof=chisqdof,
                     select_mesons=True,
                     method='free',
-                    nspec=2,
+                    nspec=3,
                     bootstrap_mode='SE',
                 ),
                 PlotAll(
@@ -224,7 +224,7 @@ def main(chisqdof: float, waves: str):
                     chisqdof=chisqdof,
                     select_mesons=True,
                     method='free',
-                    nspec=2,
+                    nspec=3,
                 ),
                 PlotDetectors(
                     data_type='data',
@@ -233,7 +233,7 @@ def main(chisqdof: float, waves: str):
                     chisqdof=chisqdof,
                     select_mesons=True,
                     method='free',
-                    nspec=2,
+                    nspec=3,
                 ),
                 PlotAltHypos(
                     data_type='data',
@@ -242,7 +242,7 @@ def main(chisqdof: float, waves: str):
                     chisqdof=chisqdof,
                     select_mesons=True,
                     method='free',
-                    nspec=2,
+                    nspec=3,
                 ),
                 *[
                     ProcessBinned(
@@ -251,7 +251,7 @@ def main(chisqdof: float, waves: str):
                         chisqdof=chisqdof,
                         select_mesons=None,
                         method='free',
-                        nspec=2,
+                        nspec=3,
                         waves=waves,
                     )
                     for waves in BINNED_WAVESETS
@@ -263,7 +263,7 @@ def main(chisqdof: float, waves: str):
                         chisqdof=chisqdof,
                         select_mesons=None,
                         method='free',
-                        nspec=2,
+                        nspec=3,
                         waves=waves,
                     )
                     for waves in UNBINNED_WAVESETS
