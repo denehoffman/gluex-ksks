@@ -15,7 +15,6 @@ analysis/datasets
 analysis/raw_datasets
 analysis/misc
 analysis/logs
-analysis/fits
 
 .modak
 .modak*
