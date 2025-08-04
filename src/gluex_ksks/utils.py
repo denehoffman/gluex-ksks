@@ -267,7 +267,7 @@ def density_hist_to_pdf(
         idx = np.searchsorted(rfl.bins, x, side='right') - 1
         if idx < 0 or idx >= len(rfl.counts):
             return 0.0
-        return rfl.counts[idx]
+        return np.clip(rfl.counts[idx], 0.0, None)
 
     vpdf = np.vectorize(pdf)
 
