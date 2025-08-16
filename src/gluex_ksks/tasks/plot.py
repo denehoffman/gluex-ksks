@@ -34,6 +34,8 @@ from gluex_ksks.constants import (
     LOG_PATH,
     ME_BINS,
     ME_RANGE,
+    MANDELSTAM_T_BINS,
+    MANDELSTAM_T_RANGE,
     MESON_MASS_2D_BINS,
     MESON_MASS_BINS,
     MESON_MASS_RANGE,
@@ -65,6 +67,7 @@ from gluex_ksks.utils import (
     add_alt_hypos,
     add_hx_angles,
     add_ksb_costheta,
+    add_mandelstam_t,
     add_m_baryon,
     add_m_meson,
     custom_colormap,
@@ -1348,6 +1351,69 @@ class PlotBeamEnergy(PlotTask):
         self.log_plot_end()
 
 
+class PlotMandelstamT(PlotTask):
+    def __init__(
+        self,
+        *,
+        data_type: str,
+        protonz_cut: bool,
+        mass_cut: bool,
+        chisqdof: float | None,
+        select_mesons: bool | None,
+        method: Literal['fixed', 'free'] | None,
+        nspec: int | None,
+    ):
+        super().__init__(
+            'mandelstam_t',
+            'mandelstam_t',
+            data_type=data_type,
+            protonz_cut=protonz_cut,
+            mass_cut=mass_cut,
+            chisqdof=chisqdof,
+            select_mesons=select_mesons,
+            method=method,
+            nspec=nspec,
+        )
+
+    @override
+    def run(self) -> None:
+        self.log_plot_start()
+        df_data = (
+            add_mandelstam_t(self.read_inputs())
+            .select('reduced_mandelstam_t', 'weight')
+            .collect()
+        )
+        counts, edges = np.histogram(
+            -df_data['reduced_mandelstam_t'],
+            bins=MANDELSTAM_T_BINS,
+            range=MANDELSTAM_T_RANGE,
+            weights=df_data['weight'],
+        )
+        weights_squared, _ = np.histogram(
+            -df_data['reduced_mandelstam_t'],
+            bins=MANDELSTAM_T_BINS,
+            range=MANDELSTAM_T_RANGE,
+            weights=df_data['weight'].pow(2),
+        )
+        bin_centers = (edges[:-1] + edges[1:]) / 2
+        errors = np.sqrt(weights_squared)
+
+        plt.style.use('gluex_ksks.thesis')
+        _, ax = plt.subplots()
+        ax.stairs(counts, edges, color=BLUE)
+        ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
+        ax.set_ylim(0)
+        ax.set_xlabel("$-t'$ (Reduced Mandelstam $t$) (GeV${}^2$/$c^2$)")
+        bin_width = (MANDELSTAM_T_RANGE[1] - MANDELSTAM_T_RANGE[0]) / MANDELSTAM_T_BINS
+
+        ax.set_ylabel(rf'Counts / {bin_width:.2f} (GeV${{}}^2$/$c^2$)')
+        ax.set_ylim(10)
+        ax.set_yscale('log')
+        plt.savefig(self.outputs[0])
+        plt.close()
+        self.log_plot_end()
+
+
 class PlotAltHypos(PlotTask):
     def __init__(
         self,
@@ -1953,6 +2019,7 @@ class PlotAll(Task):
                 PlotMECombined(**combined_plot_kwargs),
                 PlotRF(**single_plot_kwargs),
                 PlotBeamEnergy(**single_plot_kwargs),
+                PlotMandelstamT(**single_plot_kwargs),
             ],
             outputs=[],
             log_directory=LOG_PATH,

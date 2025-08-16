@@ -16,6 +16,7 @@ from gluex_ksks.constants import (
     PLOTS_PATH,
     PURPLE,
     RED,
+    BLACK,
     REPORTS_PATH,
     RFL_BINS,
     RFL_RANGE,
@@ -336,16 +337,30 @@ class SPlotFit(Task):
 % {fit_result.weighted_total} weighted events"""
         self.outputs[1].write_text(output_str)
         plt.style.use('gluex_ksks.thesis')
-        _, ax = plt.subplots()
-        ax.hist(
+        _, (ax, res_ax) = plt.subplots(
+            2, 1, sharex=True, gridspec_kw={'height_ratios': [4, 1]}
+        )
+        counts, bin_edges, _ = ax.hist(
             arrays_data.rfl1,
             weights=arrays_data.weight,
             bins=RFL_BINS,
             range=RFL_RANGE,
             histtype='step',
             color=BLUE,
+            label='Data',
         )
+        weights_squared, _ = np.histogram(
+            arrays_data.rfl1,
+            bins=RFL_BINS,
+            range=RFL_RANGE,
+            weights=arrays_data.weight**2,
+        )
+        errors = np.sqrt(weights_squared)
         bin_width = (RFL_RANGE[1] - RFL_RANGE[0]) / RFL_BINS
+        bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+
+        ax.errorbar(bin_centers, counts, yerr=errors, fmt='none', color=BLUE)
+
         rfls = np.linspace(*RFL_RANGE, 1000)
         sigmc_fit_components = get_sigmc_fit_components(
             arrays=arrays_sigmc,
@@ -376,12 +391,42 @@ class SPlotFit(Task):
             color=PURPLE,
             label='Fit Total',
         )
-        ax.set_xlabel(r'$K_S^0$ Rest Frame Lifetime (ns)')
         bin_width_ps = int((RFL_RANGE[1] - RFL_RANGE[0]) / RFL_BINS * 1000)
         ax.set_ylabel(f'Counts / {bin_width_ps} (ps)')
         ax.set_ylim(10)
         ax.set_yscale('log')
         ax.legend()
+
+        grid = np.linspace(RFL_RANGE[0], RFL_RANGE[1], 20001)
+        dx = grid[1] - grid[0]
+        model_density = sigmc_fit_components.pdf1(grid) * fit_result.sig_yield + sum(
+            exp_pdf_single(rfl=grid, lda=lda) * y
+            for y, lda in zip(fit_result.bkg_yields, fit_result.bkg_ldas)
+        )
+
+        expected_counts, _ = np.histogram(
+            grid, bins=RFL_BINS, range=RFL_RANGE, weights=model_density * dx
+        )
+        residuals = np.divide(
+            counts - expected_counts,
+            errors,
+            out=np.zeros_like(counts, dtype=float),
+            where=errors > 0,
+        )
+        finite = np.isfinite(residuals)
+        if finite.any():
+            max_abs = np.max(np.abs(residuals[finite]))
+            y_lim = max(1.1, max_abs * 1.05 + 0.1)  # small padding
+        else:
+            y_lim = 1.5
+
+        res_ax.axhline(0, color=BLACK, lw=1)
+        res_ax.plot(bin_centers, residuals, '.', color=BLACK, ms=3)
+        res_ax.set_ylim(-y_lim, y_lim)
+        res_ax.set_ylabel(r'$(\text{Data} - \text{Fit})/\sigma$')
+        res_ax.set_xlabel(r'$K_S^0$ Rest Frame Lifetime (ns)')
+
+        plt.tight_layout()
         plt.savefig(self.outputs[2])
         plt.close()
 

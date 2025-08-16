@@ -683,6 +683,83 @@ def add_hx_angles(data: pl.LazyFrame) -> pl.LazyFrame:
     ).unnest('hx_angles')
 
 
+def add_mandelstam_t(data: pl.LazyFrame) -> pl.LazyFrame:
+    def process(struct) -> dict[str, float]:
+        beam_px = struct['p4_0_Px']
+        beam_py = struct['p4_0_Py']
+        beam_pz = struct['p4_0_Pz']
+        beam_e = struct['p4_0_E']
+
+        p_px = struct['p4_1_Px']
+        p_py = struct['p4_1_Py']
+        p_pz = struct['p4_1_Pz']
+        p_e = struct['p4_1_E']
+
+        ks1_px = struct['p4_2_Px']
+        ks1_py = struct['p4_2_Py']
+        ks1_pz = struct['p4_2_Pz']
+        ks1_e = struct['p4_2_E']
+
+        ks2_px = struct['p4_3_Px']
+        ks2_py = struct['p4_3_Py']
+        ks2_pz = struct['p4_3_Pz']
+        ks2_e = struct['p4_3_E']
+
+        beam_lab = ld.Vec4(beam_px, beam_py, beam_pz, beam_e)
+        p_lab = ld.Vec4(p_px, p_py, p_pz, p_e)
+        ks1_lab = ld.Vec4(ks1_px, ks1_py, ks1_pz, ks1_e)
+        ks2_lab = ld.Vec4(ks2_px, ks2_py, ks2_pz, ks2_e)
+        event = ld.Event(
+            p4s=[beam_lab, p_lab, ks1_lab, ks2_lab], aux=[], weight=1.0
+        ).boost_to_rest_frame_of([1, 2, 3])
+        mandelstam_t_var = ld.Mandelstam([0], [], [2, 3], [1], channel='t')
+        resonance_com = event.get_p4_sum([2, 3])
+        beam_com = event.p4s[0]
+        resonance_com_min = ld.Vec4(
+            beam_com.vec3.x / beam_com.vec3.mag * resonance_com.vec3.mag,
+            beam_com.vec3.y / beam_com.vec3.mag * resonance_com.vec3.mag,
+            beam_com.vec3.z / beam_com.vec3.mag * resonance_com.vec3.mag,
+            resonance_com.e,
+        )
+        mandelstam_t = mandelstam_t_var.value(event)
+        mandelstam_t_min = (beam_com - resonance_com_min).mag2
+        return {
+            'mandelstam_t': mandelstam_t,
+            'reduced_mandelstam_t': mandelstam_t - mandelstam_t_min,
+        }
+
+    return data.with_columns(
+        pl.struct(
+            'p4_0_Px',
+            'p4_0_Py',
+            'p4_0_Pz',
+            'p4_0_E',
+            'p4_1_Px',
+            'p4_1_Py',
+            'p4_1_Pz',
+            'p4_1_E',
+            'p4_2_Px',
+            'p4_2_Py',
+            'p4_2_Pz',
+            'p4_2_E',
+            'p4_3_Px',
+            'p4_3_Py',
+            'p4_3_Pz',
+            'p4_3_E',
+        )
+        .map_elements(
+            process,
+            return_dtype=pl.Struct(
+                {
+                    'mandelstam_t': pl.Float64,
+                    'reduced_mandelstam_t': pl.Float64,
+                }
+            ),
+        )
+        .alias('mandelstam')
+    ).unnest('mandelstam')
+
+
 def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
     def process(struct) -> dict[str, float]:
         p_px = struct['p4_1_Px']
@@ -779,31 +856,67 @@ def add_alt_hypos(data: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def to_latex(
-    value: float, unc: float | None = None, unc_sys: float | None = None
+    value: float,
+    unc: float | None = None,
+    unc_sys: float | None = None,
+    max_guard: int = 2,
 ) -> str:
+    # no-uncertainty branch
     if unc is None:
         if np.isnan(value):
             return r' \textemdash '
         mantissa, exponent = f'{value:.2E}'.split('E')
-        return f'${mantissa} \\times 10^{{{exponent}}}$'
+        return f'${mantissa} \\times 10^{{{int(exponent)}}}$'
+
+    # special/NaN
     if value == 0.0 and unc == 0.0:
         return r'$0.0$ (fixed)'
     if np.isnan(value) or np.isnan(unc):
         return r' \textemdash '
-    truncation = -int(np.floor(np.log10(abs(unc)))) + 1
+
+    # base rounding: 2 significant digits for uncertainties
+    def trunc_for(u: float) -> int:
+        return -int(np.floor(np.log10(np.abs(u)))) + 1
+
+    truncation = trunc_for(unc)
     if unc_sys is not None:
-        truncation_sys = -int(np.floor(np.log10(abs(unc_sys)))) + 1
-        truncation = max(truncation, truncation_sys)
+        truncation = max(truncation, trunc_for(unc_sys))
+
+    # truncate uncertainties
     unc_trunc = round(unc, truncation)
     val_trunc = round(value, truncation)
     ndigits = -truncation
-    expo = int(np.floor(np.log10(abs(val_trunc if val_trunc != 0.0 else unc_trunc))))
-    val_mantissa = val_trunc / 10**expo
+
+    # choose exponent from value if nonzero after trunc, else from unc
+    ref = val_trunc if val_trunc != 0.0 else unc_trunc
+    expo = int(np.floor(np.log10(np.abs(ref)))) if ref != 0.0 else 0
+
+    # mantissas for uncertainties (value gets guard digits below)
     unc_mantissa = unc_trunc / 10**expo
+    unc_prec = max(0, expo - ndigits)  # decimals for uncertainty mantissas
+
+    # guard digits for the central value to avoid printing 0.0
+    guard = 0
+    if value != 0.0 and round(value, truncation) == 0.0:
+        while guard < max_guard and round(value, truncation + guard) == 0.0:
+            guard += 1
+
+    val_disp = round(value, truncation + guard)
+    val_mantissa = val_disp / 10**expo
+    val_prec = max(0, unc_prec + guard)
+
     if unc_sys is not None:
-        unc_sys_mantissa = unc_sys / 10**expo if unc_sys is not None else None
-        return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f} \pm {unc_sys_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'
-    return rf'$({val_mantissa:.{expo - ndigits}f} \pm {unc_mantissa:.{expo - ndigits}f}) \times 10^{{{expo}}}$'
+        unc_sys_trunc = round(unc_sys, truncation)
+        unc_sys_mantissa = unc_sys_trunc / 10**expo
+        return (
+            rf'$({val_mantissa:.{val_prec}f} \pm {unc_mantissa:.{unc_prec}f} '
+            rf'\pm {unc_sys_mantissa:.{unc_prec}f}) \times 10^{{{expo}}}$'
+        )
+
+    return (
+        rf'$({val_mantissa:.{val_prec}f} \pm {unc_mantissa:.{unc_prec}f}) '
+        rf'\times 10^{{{expo}}}$'
+    )
 
 
 def custom_colormap() -> tuple[ListedColormap, CenteredNorm]:
