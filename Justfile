@@ -20,6 +20,7 @@ run-others queue='blue' waves='all':
   sbatch slurm_job_{{queue}}.sh 4.00 {{waves}}
   sbatch slurm_job_{{queue}}.sh 5.00 {{waves}}
 
+# WARNING: use caution here, these jobs may all write to the same file in some instances, which can cause corruptions
 run-separate chisqdof='3.00' queue='blue':
   sbatch slurm_job_{{queue}}.sh {{chisqdof}} spd2p
   sbatch slurm_job_{{queue}}.sh {{chisqdof}} spnd2p
