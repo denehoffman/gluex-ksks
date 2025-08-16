@@ -217,6 +217,18 @@ E_OVER_P_BINS = {
     'Proton': 50,
 }
 
+MANDELSTAM_T_BINS = 50
+MANDELSTAM_T_RANGE = (0.0, 2.5)
+
+REGIONS_OF_INTEREST = [
+    (1.0, 1.15),
+    (1.2, 1.35),
+    (1.2, 1.25),
+    (1.25, 1.35),
+    (1.45, 1.6),
+    (1.7, 1.9),
+]
+
 
 @dataclass
 class Particle:

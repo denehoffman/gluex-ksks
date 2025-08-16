@@ -1127,6 +1127,314 @@ class UnbinnedFitResultUncertainty:
         }
 
 
+@dataclass
+class UnbinnedFitResultUncertaintyOther:
+    unbinned_fit_result_uncertainty: UnbinnedFitResultUncertainty
+    variable: Literal['costheta', 'phi']
+    mass_range: tuple[float, float]
+    histogram_cache: dict[int, list[Histogram]] | None = None
+    fit_histograms_cache: dict[int, list[Histogram]] | None = None
+    lcu_cache: (
+        dict[
+            int,
+            dict[
+                str,
+                dict[
+                    int,
+                    tuple[
+                        FloatArray,
+                        FloatArray,
+                        FloatArray,
+                    ],
+                ],
+            ],
+        ]
+        | None
+    ) = None
+
+    def get_data_histogram(self, binning: Binning) -> Histogram:
+        variable = (
+            ld.CosTheta(0, [1], [2], [2, 3])
+            if self.variable == 'costheta'
+            else ld.Phi(0, [1], [2], [2, 3])
+        )
+        data_datasets = (
+            self.unbinned_fit_result_uncertainty.fit_result.paths.get_data_datasets()
+        )
+        res_mass = ld.Mass([2, 3])
+        values = [res_mass.value_on(data_dataset) for data_dataset in data_datasets]
+        mass_masks = [
+            (self.mass_range[0] <= value) & (value <= self.mass_range[1])
+            for value in values
+        ]
+        values = np.concatenate(
+            [
+                variable.value_on(dataset)[mass_masks[i]]
+                for i, dataset in enumerate(data_datasets)
+            ]
+        )
+        weights = np.concatenate(
+            [dataset.weights[mass_masks[i]] for i, dataset in enumerate(data_datasets)]
+        )
+        data_hist = Histogram(
+            *np.histogram(
+                values,
+                bins=binning.bins,
+                range=binning.range,
+                weights=weights,
+            ),
+            np.sqrt(
+                np.histogram(
+                    values,
+                    bins=binning.bins,
+                    range=binning.range,
+                    weights=np.power(weights, 2),
+                )[0]
+            ),
+        )
+        return data_hist
+
+    def get_lower_center_upper(
+        self,
+        binning: Binning,
+        *,
+        bootstrap_mode: Literal['SE', 'CI', 'CI-BC'] | str = 'CI-BC',
+        confidence_percent: int = 90,
+    ) -> dict[
+        int,
+        tuple[FloatArray, FloatArray, FloatArray],
+    ]:
+        if (
+            self.lcu_cache is not None
+            and (confidence_cache := self.lcu_cache.get(confidence_percent)) is not None
+            and (cache := confidence_cache.get(bootstrap_mode)) is not None
+        ):
+            return cache
+        else:
+            self.fill_cache(binning, confidence_percent=confidence_percent)
+            if (
+                self.lcu_cache is not None
+                and (confidence_cache := self.lcu_cache.get(confidence_percent))
+                is not None
+                and (cache := confidence_cache.get(bootstrap_mode)) is not None
+            ):
+                return cache
+            else:
+                raise RuntimeError(
+                    f'No cache found for mode {bootstrap_mode} at {confidence_percent}% confidence'
+                )
+
+    def get_histograms(
+        self,
+        binning: Binning,
+    ) -> dict[int, Histogram]:
+        if fit_histograms := self.fit_histograms_cache:
+            hists = {
+                wave: Histogram.sum(hists) for wave, hists in fit_histograms.items()
+            }
+            return {wave: hist for wave, hist in hists.items() if hist is not None}
+        variable = (
+            ld.CosTheta(0, [1], [2], [2, 3])
+            if self.variable == 'costheta'
+            else ld.Phi(0, [1], [2], [2, 3])
+        )
+        data_datasets = (
+            self.unbinned_fit_result_uncertainty.fit_result.paths.get_data_datasets()
+        )
+        accmc_datasets = (
+            self.unbinned_fit_result_uncertainty.fit_result.paths.get_accmc_datasets()
+        )
+        wavesets = Wave.power_set(self.unbinned_fit_result_uncertainty.fit_result.waves)
+        res_mass = ld.Mass([2, 3])
+        values = [res_mass.value_on(accmc_dataset) for accmc_dataset in accmc_datasets]
+        mass_masks = [
+            (self.mass_range[0] <= value) & (value <= self.mass_range[1])
+            for value in values
+        ]
+        histograms: dict[int, Histogram] = {}
+        nlls = [
+            ld.NLL(
+                self.unbinned_fit_result_uncertainty.fit_result.model,
+                ds_data,
+                ds_accmc,
+            )
+            for ds_data, ds_accmc in zip(data_datasets, accmc_datasets)
+        ]
+        for waveset in wavesets:
+            histograms[Wave.encode_waves(waveset)] = Histogram(
+                *np.histogram(
+                    np.concatenate(
+                        [
+                            variable.value_on(accmc_dataset)[mass_masks[i]]
+                            for i, accmc_dataset in enumerate(accmc_datasets)
+                        ]
+                    ),
+                    weights=np.concatenate(
+                        [
+                            nll.project_with(
+                                self.unbinned_fit_result_uncertainty.fit_result.status.x,
+                                Wave.get_waveset_names(
+                                    waveset,
+                                    mass_dependent=True,
+                                    phase_factor=self.unbinned_fit_result_uncertainty.fit_result.phase_factor,
+                                ),
+                            )[mass_masks[i]]
+                            for i, nll in enumerate(nlls)
+                        ]
+                    ),
+                    bins=binning.edges,
+                )
+            )
+        return histograms
+
+    def get_bootstrap_histograms(self, binning: Binning) -> dict[int, list[Histogram]]:
+        if self.histogram_cache is not None:
+            return self.histogram_cache
+
+        variable = (
+            ld.CosTheta(0, [1], [2], [2, 3])
+            if self.variable == 'costheta'
+            else ld.Phi(0, [1], [2], [2, 3])
+        )
+        data_datasets = (
+            self.unbinned_fit_result_uncertainty.fit_result.paths.get_data_datasets()
+        )
+        accmc_datasets = (
+            self.unbinned_fit_result_uncertainty.fit_result.paths.get_accmc_datasets()
+        )
+        wavesets = Wave.power_set(self.unbinned_fit_result_uncertainty.fit_result.waves)
+        res_mass = ld.Mass([2, 3])
+        bootstrapped_histograms: dict[int, list[Histogram]] = {
+            Wave.encode_waves(waveset): [] for waveset in wavesets
+        }
+        values = [res_mass.value_on(accmc_dataset) for accmc_dataset in accmc_datasets]
+        mass_masks = [
+            (self.mass_range[0] <= value) & (value <= self.mass_range[1])
+            for value in values
+        ]
+        for isample, sample in enumerate(self.unbinned_fit_result_uncertainty.samples):
+            nlls = [
+                ld.NLL(
+                    self.unbinned_fit_result_uncertainty.fit_result.model,
+                    ds_data.bootstrap(isample),
+                    ds_accmc,
+                )
+                for ds_data, ds_accmc in zip(data_datasets, accmc_datasets)
+            ]
+            for waveset in wavesets:
+                bootstrapped_histograms[Wave.encode_waves(waveset)].append(
+                    Histogram(
+                        *np.histogram(
+                            np.concatenate(
+                                [
+                                    variable.value_on(accmc_dataset)[mass_masks[i]]
+                                    for i, accmc_dataset in enumerate(accmc_datasets)
+                                ]
+                            ),
+                            weights=np.concatenate(
+                                [
+                                    nll.project_with(
+                                        sample,
+                                        Wave.get_waveset_names(
+                                            waveset,
+                                            mass_dependent=True,
+                                            phase_factor=self.unbinned_fit_result_uncertainty.fit_result.phase_factor,
+                                        ),
+                                    )[mass_masks[i]]
+                                    for i, nll in enumerate(nlls)
+                                ]
+                            ),
+                            bins=binning.edges,
+                        )
+                    )
+                )
+        self.histogram_cache = bootstrapped_histograms
+        return self.histogram_cache
+
+    def fill_cache(
+        self,
+        binning: Binning,
+        *,
+        confidence_percent: int = 90,
+    ):
+        wavesets = Wave.power_set(self.unbinned_fit_result_uncertainty.fit_result.waves)
+        lcu_se: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        lcu_ci: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        lcu_ci_bc: dict[int, tuple[FloatArray, FloatArray, FloatArray]] = {}
+        fit_histograms = self.get_histograms(binning)
+        bootstrap_histograms = self.get_bootstrap_histograms(binning)
+        for waveset in wavesets:
+            intensities = np.array(
+                [
+                    histogram.counts
+                    for histogram in bootstrap_histograms[Wave.encode_waves(waveset)]
+                ]
+            )
+            a_lo = (1 - confidence_percent / 100) / 2
+            a_hi = 1 - a_lo
+            quantiles = np.quantile(intensities, [a_lo, 0.5, a_hi], axis=0)
+            lcu_ci[Wave.encode_waves(waveset)] = (
+                quantiles[0],
+                quantiles[1],
+                quantiles[2],
+            )
+            fit_values = fit_histograms[Wave.encode_waves(waveset)].counts
+            n_b = len(self.unbinned_fit_result_uncertainty.samples)
+            phi = norm().cdf
+            phi_inv = norm().ppf
+
+            bootstrap_means = intensities.mean(axis=0)
+
+            lt_mask = fit_values > bootstrap_means
+            le_mask = ~lt_mask
+            cdfs = np.zeros_like(fit_values, dtype=float)
+            cdfs[lt_mask] = (
+                np.sum(intensities[:, lt_mask] < fit_values[lt_mask], axis=0) / n_b
+            )
+            cdfs[le_mask] = (
+                np.sum(intensities[:, le_mask] <= fit_values[le_mask], axis=0) / n_b
+            )
+
+            a = (1 - confidence_percent / 100) / 2
+            z_a_lo = phi_inv(a)
+            z_a_hi = phi_inv(1 - a)
+            z_0s = phi_inv(cdfs)
+            a_los = phi(2 * z_0s + z_a_lo)
+            a_his = phi(2 * z_0s + z_a_hi)
+
+            quantiles = np.array(
+                [
+                    np.quantile(
+                        intensities[:, ibin],
+                        [a_los[ibin], 0.5, a_his[ibin]],
+                    )
+                    for ibin in range(len(intensities[0]))
+                ]
+            ).T
+            lcu_ci_bc[Wave.encode_waves(waveset)] = (
+                quantiles[0],
+                quantiles[1],
+                quantiles[2],
+            )
+            std_errs = np.std(intensities, ddof=1, axis=0)
+            quantiles = np.array(
+                [fit_values - std_errs, fit_values, fit_values + std_errs],
+                dtype=np.float64,
+            )
+            lcu_se[Wave.encode_waves(waveset)] = (
+                quantiles[0],
+                quantiles[1],
+                quantiles[2],
+            )
+        if self.lcu_cache is None:
+            self.lcu_cache = {}
+        self.lcu_cache[confidence_percent] = {
+            'SE': lcu_se,
+            'CI': lcu_ci,
+            'CI-BC': lcu_ci_bc,
+        }
+
+
 def calculate_bootstrap_uncertainty_unbinned(
     fit_result: UnbinnedFitResult,
     *,

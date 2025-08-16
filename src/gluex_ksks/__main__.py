@@ -152,7 +152,7 @@ def main(chisqdof: float, waves: str):
                 mass_cut=True,
                 chisqdof=chisqdof,
                 select_mesons=True,
-                method='free',
+                method='fixed',
                 nspec=3,
                 waves=waves,
             )
@@ -164,7 +164,7 @@ def main(chisqdof: float, waves: str):
                 mass_cut=True,
                 chisqdof=chisqdof,
                 select_mesons=True,
-                method='free',
+                method='fixed',
                 nspec=3,
                 waves=waves,
             )
@@ -175,15 +175,6 @@ def main(chisqdof: float, waves: str):
     if chisqdof == DEFAULT_CHISQDOF:
         tasks.extend(
             [
-                PlotCLASComparison(
-                    protonz_cut=True,
-                    mass_cut=True,
-                    chisqdof=chisqdof,
-                    select_mesons=True,
-                    method='free',
-                    nspec=3,
-                    bootstrap_mode='SE',
-                ),
                 PlotAll(
                     data_type='data',
                     protonz_cut=True,
@@ -223,7 +214,7 @@ def main(chisqdof: float, waves: str):
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
-                    method='free',
+                    method='fixed',
                     nspec=3,
                 ),
                 PlotDetectors(
@@ -232,7 +223,7 @@ def main(chisqdof: float, waves: str):
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
-                    method='free',
+                    method='fixed',
                     nspec=3,
                 ),
                 PlotAltHypos(
@@ -241,7 +232,7 @@ def main(chisqdof: float, waves: str):
                     mass_cut=True,
                     chisqdof=chisqdof,
                     select_mesons=True,
-                    method='free',
+                    method='fixed',
                     nspec=3,
                 ),
                 *[
@@ -250,7 +241,7 @@ def main(chisqdof: float, waves: str):
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=None,
-                        method='free',
+                        method='fixed',
                         nspec=3,
                         waves=waves,
                     )
@@ -262,7 +253,7 @@ def main(chisqdof: float, waves: str):
                         mass_cut=True,
                         chisqdof=chisqdof,
                         select_mesons=None,
-                        method='free',
+                        method='fixed',
                         nspec=3,
                         waves=waves,
                     )
@@ -270,6 +261,18 @@ def main(chisqdof: float, waves: str):
                 ],
             ]
         )
+        if waves == 'all' or waves == 'spd2p':
+            tasks.append(
+                PlotCLASComparison(
+                    protonz_cut=True,
+                    mass_cut=True,
+                    chisqdof=chisqdof,
+                    select_mesons=True,
+                    method='fixed',
+                    nspec=3,
+                    bootstrap_mode='SE',
+                )
+            )
     tq.run(tasks)
 
 
