@@ -28,9 +28,9 @@ from gluex_ksks.constants import (
     PLOTS_PATH,
     REPORTS_PATH,
     RUN_PERIODS,
-    COSTHETA_BINS,
+    COSTHETA_BINS_FIT_PLOT,
     COSTHETA_RANGE,
-    PHI_BINS,
+    PHI_BINS_FIT_PLOT,
     PHI_RANGE,
     REGIONS_OF_INTEREST,
 )
@@ -897,10 +897,10 @@ class UnbinnedFitUncertaintyOther(Task):
         ]
         outputs = [
             inputs[0].outputs[0].parent
-            / f'{inputs[0].outputs[0].stem}_{variable}_{mass_range[0]}_{mass_range[1]}_{"kmatrix" if kmatrix else ""}.pkl'
+            / f'{inputs[0].outputs[0].stem}_{variable}_{mass_range[0]}_{mass_range[1]}{"_kmatrix" if kmatrix else ""}.pkl'
         ]
         super().__init__(
-            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}_unc_{variable}_{mass_range[0]}_{mass_range[1]}_{"kmatrix" if kmatrix else ""}',
+            f'unbinned_fit{"_pz" if protonz_cut else ""}{"_masscut" if mass_cut else ""}{f"_chisqdof_{chisqdof}" if chisqdof is not None else ""}_{tag}_{method}_{nspec}_{wave_string}_{guided}_unc_{variable}_{mass_range[0]}_{mass_range[1]}{"_kmatrix" if kmatrix else ""}',
             inputs=inputs,
             outputs=outputs,
             resources={'fit': 1},
@@ -916,9 +916,9 @@ class UnbinnedFitUncertaintyOther(Task):
             unbinned_fit_result_uncertainty, self.variable, self.mass_range
         )
         binning = (
-            Binning(COSTHETA_BINS, COSTHETA_RANGE)
+            Binning(COSTHETA_BINS_FIT_PLOT, COSTHETA_RANGE)
             if self.variable == 'costheta'
-            else Binning(PHI_BINS, PHI_RANGE)
+            else Binning(PHI_BINS_FIT_PLOT, PHI_RANGE)
         )
         self.logger.info('Filling 68% cache')
         result.fill_cache(binning, confidence_percent=68)
@@ -1576,9 +1576,9 @@ class PlotFitOther(Task):
             dict[int, tuple[FloatArray, FloatArray, FloatArray]] | None
         ) = None
         binning = (
-            Binning(COSTHETA_BINS, COSTHETA_RANGE)
+            Binning(COSTHETA_BINS_FIT_PLOT, COSTHETA_RANGE)
             if self.variable == 'costheta'
-            else Binning(PHI_BINS, PHI_RANGE)
+            else Binning(PHI_BINS_FIT_PLOT, PHI_RANGE)
         )
         if self.unbinned_spec.uncertainty_mode in ['bootstrap', 'both']:
             unbinned_fit_result_bootstrap = pickle.load(
@@ -1724,11 +1724,13 @@ class PlotFitOther(Task):
             (
                 r'$\cos\left(\theta_{\text{HX}}\right)$'
                 if self.variable == 'costheta'
-                else r'$\phi_{\text{HX}}$ (rad)'
+                else r'$\varphi_{\text{HX}}$ (rad)'
             )
         )
         var_range = COSTHETA_RANGE if self.variable == 'costheta' else PHI_RANGE
-        nbins = COSTHETA_BINS if self.variable == 'costheta' else PHI_BINS
+        nbins = (
+            COSTHETA_BINS_FIT_PLOT if self.variable == 'costheta' else PHI_BINS_FIT_PLOT
+        )
         bin_width = int((var_range[1] - var_range[0]) / nbins * 1000)
         fig.supylabel(f'Counts / {bin_width} (MeV/$c^2$)')
         fig.suptitle(
