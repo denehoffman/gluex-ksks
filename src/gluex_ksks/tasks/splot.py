@@ -311,24 +311,40 @@ class SPlotFit(Task):
                     )
                 )
             )
+        all_par_names = []
+        values = []
+        errors = []
+        for par_name, value, error in zip(
+            par_names, fit_result.total_fit.values, fit_result.total_fit.errors
+        ):
+            if par_name.startswith('s'):
+                normalized_name = 'Signal Yield'
+                all_par_names.append(normalized_name)
+                values.append(float(value))
+                errors.append(float(error))
+            elif par_name.startswith('b'):
+                normalized_name = rf'Background Yield $\#{par_name[1:]}$'
+                all_par_names.append(normalized_name)
+                values.append(float(value))
+                errors.append(float(error))
+                if self.fixed:
+                    normalized_bkglda_name = rf'Background $\lambda$ $\#{par_name[1:]}$'
+                    all_par_names.append(normalized_bkglda_name)
+                    values.append(float(fit_result.bkg_ldas[int(par_name[1:]) - 1]))
+                    errors.append(None)
+            else:
+                normalized_name = rf'Background $\lambda$ $\#{par_name[1:]}$'
+                all_par_names.append(normalized_name)
+                values.append(float(value))
+                errors.append(float(error))
         output_str = r"""
 \begin{table}[ht]
     \begin{center}
         \begin{tabular}{lr}\toprule
             Parameter & Value \\\midrule"""
-        for par_name, value, error in zip(
-            par_names,
-            fit_result.total_fit.values,
-            fit_result.total_fit.errors,
-        ):
-            if par_name.startswith('s'):
-                normalized_name = 'Signal Yield'
-            elif par_name.startswith('b'):
-                normalized_name = rf'Background Yield $\#{par_name[1:]}$'
-            else:
-                normalized_name = rf'Background $\lambda$ $\#{par_name[1:]}$'
+        for par_name, value, error in zip(all_par_names, values, errors):
             output_str += f"""
-            {normalized_name} & {to_latex(float(value), float(error))} \\\\"""
+            {par_name} & {to_latex(value, error)} \\\\"""
         output_str += rf"""\bottomrule
         \end{{tabular}}
         \caption{{The parameter values and uncertainties for the sPlot fit of data with $\chi^2_\nu < {self.chisqdof:.2f}$ using {num2words(self.nspec)} {self.method} background slope{'s' if self.nspec > 1 else ''}. Uncertainties are calculated using the covariance matrix of the fit.{r' All $\lambda$ parameters have units of $\si{\nano\second}^{-1}$.' if self.method == 'free' else ''}}}\label{{tab:splot-fit-results-chisqdof-{self.chisqdof:.2f}-{self.method}-{self.nspec}}}

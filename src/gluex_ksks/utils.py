@@ -861,16 +861,17 @@ def to_latex(
     unc_sys: float | None = None,
     max_guard: int = 2,
 ) -> str:
+    # special case for 0.0
+    if value == 0.0 and (unc == 0.0 or unc is None):
+        return r'$0.0$ (fixed)'
     # no-uncertainty branch
     if unc is None:
         if np.isnan(value):
             return r' \textemdash '
         mantissa, exponent = f'{value:.2E}'.split('E')
-        return f'${mantissa} \\times 10^{{{int(exponent)}}}$'
+        return f'${mantissa} \\times 10^{{{int(exponent)}}}$ (fixed)'
 
-    # special/NaN
-    if value == 0.0 and unc == 0.0:
-        return r'$0.0$ (fixed)'
+    # failed fit branch
     if np.isnan(value) or np.isnan(unc):
         return r' \textemdash '
 
