@@ -18,6 +18,7 @@ from gluex_ksks.constants import (
     BLACK,
     FITS_PATH,
     GRAY,
+    PURPLE,
     LOG_PATH,
     MESON_MASS_RANGE,
     NBINS,
@@ -1203,7 +1204,7 @@ class UnbinnedFitReport(Task):
 
         output_str += rf"""\bottomrule
         \end{{tabular}}
-    \caption{{The parameter values and uncertainties for the unbinned {'(guided) ' if self.guided else ''}fit of {Wave.to_latex_string(self.waves)} waves to data with $\chi^2_\nu < {self.chisqdof:.2f}$. Uncertainties are calculated from the standard error over ${NBOOT}$ bootstrap iterations{f' and ${NKMATRIX_SAMPLES}$ resampled $K$-matrix parameterizations, respectively' if self.resample_kmatrix else ''}.}}\label{{tab:unbinned-fit-chisqdof-{self.chisqdof:.1f}{'-guided' if self.guided else ''}{'-resampled' if self.resample_kmatrix else ''}-{Wave.to_kebab_string(self.waves)}}}
+    \caption{{The parameter values and uncertainties for the unbinned {'(guided) ' if self.guided else ''}fit of {Wave.to_latex_string(self.waves)} waves to data with $\chi^2_\nu < {self.chisqdof:.2f}$. Uncertainties are calculated from the standard error over ${NBOOT}$ bootstrap iterations{f' and ${NKMATRIX_SAMPLES}$ resampled $K$-matrix parameterizations, respectively' if self.resample_kmatrix else ''}. This result corresponds to \Cref{{fig:unbinned-fit-chisqdof-{self.chisqdof:.1f}{'-guided' if self.guided else ''}{'-resampled' if self.resample_kmatrix else ''}-{Wave.to_kebab_string(self.waves)}}}.}}\label{{tab:unbinned-fit-chisqdof-{self.chisqdof:.1f}{'-guided' if self.guided else ''}{'-resampled' if self.resample_kmatrix else ''}-{Wave.to_kebab_string(self.waves)}}}
     \end{{center}}
 \end{{table}}
 % NLL = {status.fx}
@@ -1649,7 +1650,7 @@ class PlotFitOther(Task):
                     a.stairs(
                         fit_hist.counts,
                         fit_hist.bins,
-                        color=GRAY,
+                        color=PURPLE,
                         label=f'Fit (Unbinned{", Guided" if self.unbinned_spec.guided else ""})',
                         lw=0.7,
                     )
@@ -1658,7 +1659,7 @@ class PlotFitOther(Task):
                         fit_hist.bins,
                         baseline=fit_lcu[0],
                         fill=True,
-                        color=GRAY,
+                        color=PURPLE,
                         alpha=0.2,
                         lw=0,
                     )
@@ -1669,7 +1670,7 @@ class PlotFitOther(Task):
                             stderr[1],
                             yerr=(stderr[2] - stderr[0]) / 2,
                             fmt='none',
-                            color=GRAY,
+                            color=PURPLE,
                             elinewidth=0.2,
                             alpha=0.5,
                             capsize=1,
